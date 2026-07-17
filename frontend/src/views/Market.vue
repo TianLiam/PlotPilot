@@ -1,42 +1,34 @@
 <template>
   <div class="market-page">
     <div class="market-header">
-      <n-page-header title="市场分析中心" :subtitle="subtitle">
-        <template #header-extra>
-          <n-space :size="12">
-            <n-button @click="goHome">
-              <template #icon>
-                <n-icon><IconHome /></n-icon>
-              </template>
-              返回首页
-            </n-button>
-            <n-button type="primary" @click="handleCrawlRankings">
-              <template #icon>
-                <n-icon><IconRefresh /></n-icon>
-              </template>
-              刷新榜单
-            </n-button>
-            <n-button type="success" @click="handleCrawlHotTopics">
-              <template #icon>
-                <n-icon><IconFlame /></n-icon>
-              </template>
-              更新热点
-            </n-button>
-            <n-button type="info" @click="goResearch">
-              <template #icon>
-                <n-icon><IconSearch /></n-icon>
-              </template>
-              创作前研究
-            </n-button>
-            <n-button type="warning" @click="goDeconstruction">
-              <template #icon>
-                <n-icon><IconBook /></n-icon>
-              </template>
-              爆款拆书
-            </n-button>
-          </n-space>
-        </template>
-      </n-page-header>
+      <div class="header-inner">
+        <div class="header-left">
+          <h1 class="page-title">市场洞察</h1>
+          <p class="page-subtitle">用数据找到下一个爆款</p>
+        </div>
+        <div class="header-right">
+          <n-button type="primary" size="medium" @click="handleCrawlRankings">
+            <template #icon>
+              <n-icon><IconRefresh /></n-icon>
+            </template>
+            刷新榜单
+          </n-button>
+        </div>
+      </div>
+
+      <div class="sub-nav">
+        <router-link
+          v-for="item in subNavItems"
+          :key="item.path"
+          :to="item.path"
+          class="sub-nav-item"
+          active-class="is-active"
+        >
+          <span class="sub-nav-icon">{{ item.icon }}</span>
+          <span class="sub-nav-label">{{ item.label }}</span>
+          <span v-if="item.badge" class="sub-nav-badge">{{ item.badge }}</span>
+        </router-link>
+      </div>
     </div>
 
     <n-space vertical :size="24" class="market-content">
@@ -350,6 +342,13 @@ const templateDetailVisible = ref(false)
 const selectedTemplate = ref<Template | null>(null)
 const templateDetailContent = ref('')
 
+const subNavItems = [
+  { path: '/market/trends', label: '趋势大盘', icon: '📈', badge: '' },
+  { path: '/market', label: '爆款发现', icon: '💎', badge: 'Hot' },
+  { path: '/market/research', label: '题材研究', icon: '🔬', badge: '' },
+  { path: '/market/deconstruction', label: '爆款拆书', icon: '🧬', badge: 'New' },
+]
+
 const IconHome = () =>
   h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', width: '1em', height: '1em' },
     h('path', { fill: 'currentColor', d: 'M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z' }))
@@ -518,17 +517,91 @@ onMounted(() => {
 
 <style scoped>
 .market-page {
-  padding: 24px;
-  min-height: 100vh;
+  padding: 0;
+  min-height: calc(100vh - 60px);
 }
 
 .market-header {
-  margin-bottom: 24px;
+  background: var(--app-surface);
+  border-bottom: 1px solid var(--app-border);
+  padding: 0 24px;
+  margin-bottom: 0;
+}
+
+.header-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px 0 16px;
+}
+
+.page-title {
+  margin: 0 0 4px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--app-text-primary);
+  letter-spacing: -0.02em;
+}
+
+.page-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: var(--app-text-muted);
+}
+
+.sub-nav {
+  display: flex;
+  gap: 4px;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding-bottom: 0;
+}
+
+.sub-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  text-decoration: none;
+  color: var(--app-text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.sub-nav-item:hover {
+  color: var(--app-text-primary);
+}
+
+.sub-nav-item.is-active {
+  color: var(--color-brand);
+  border-bottom-color: var(--color-brand);
+  font-weight: 600;
+}
+
+.sub-nav-icon {
+  font-size: 16px;
+}
+
+.sub-nav-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+  color: #fff;
+  line-height: 1;
 }
 
 .market-content {
   max-width: 1400px;
   margin: 0 auto;
+  padding: 24px;
 }
 
 .market-tabs {
