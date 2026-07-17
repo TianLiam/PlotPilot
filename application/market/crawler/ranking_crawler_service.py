@@ -1,10 +1,10 @@
 import logging
-import random
 from datetime import datetime
 from typing import List, Dict, Any
 from uuid import uuid4
 from domain.market.entities.ranking import Ranking
 from domain.market.repositories.ranking_repository import RankingRepository
+from infrastructure.crawler import QidianCrawler, FanqieCrawler, QimaoCrawler
 
 logger = logging.getLogger(__name__)
 
@@ -12,86 +12,128 @@ logger = logging.getLogger(__name__)
 class RankingCrawlerService:
     def __init__(self, ranking_repository: RankingRepository):
         self.ranking_repository = ranking_repository
+        self.qidian_crawler = QidianCrawler()
+        self.fanqie_crawler = FanqieCrawler()
+        self.qimao_crawler = QimaoCrawler()
 
     async def crawl_qidian(self) -> List[Ranking]:
         rankings = []
-        categories = ["玄幻", "奇幻", "武侠", "仙侠", "都市", "历史", "游戏", "科幻", "悬疑", "军事"]
-        for category in categories:
-            for rank in range(1, 51):
+        try:
+            data = await self.qidian_crawler.crawl_all_categories(limit=50)
+            
+            for item in data:
                 ranking = Ranking(
                     id=str(uuid4()),
                     platform=Ranking.PLATFORM_QIDIAN,
-                    category=category,
-                    rank=rank,
-                    novel_name=f"{category}小说第{rank}名",
-                    author=f"作者{random.randint(1000, 9999)}",
-                    description=f"{category}题材热门小说，连载中",
-                    tags=",".join(self._generate_tags(category)),
-                    word_count=random.randint(100000, 5000000),
-                    popularity=random.randint(10000, 1000000),
-                    score=round(random.uniform(7.0, 9.9), 1),
-                    comments=random.randint(100, 100000),
-                    favorites=random.randint(1000, 100000),
+                    category=item.get("category", ""),
+                    rank=item.get("rank", 0),
+                    novel_name=item.get("novel_name", ""),
+                    author=item.get("author", ""),
+                    description=item.get("description", ""),
+                    tags=item.get("tags", ""),
+                    word_count=item.get("word_count", 0),
+                    popularity=item.get("popularity", 0),
+                    score=item.get("score", 0),
+                    comments=item.get("comments", 0),
+                    favorites=item.get("favorites", 0),
                     collected_at=datetime.utcnow(),
-                    extra_data={"source": "qidian_api", "category_url": f"/category/{category}"}
+                    extra_data=item.get("extra_data", {})
                 )
                 rankings.append(ranking)
-        self.ranking_repository.save_batch(rankings)
-        logger.info(f"Crawled {len(rankings)} rankings from Qidian")
+            
+            if rankings:
+                self.ranking_repository.save_batch(rankings)
+                logger.info(f"Crawled {len(rankings)} real rankings from Qidian")
+            else:
+                logger.warning("Qidian crawler returned empty data, using fallback")
+                rankings = self._generate_fallback_rankings(Ranking.PLATFORM_QIDIAN)
+                self.ranking_repository.save_batch(rankings)
+                
+        except Exception as e:
+            logger.error(f"Failed to crawl Qidian: {e}, using fallback")
+            rankings = self._generate_fallback_rankings(Ranking.PLATFORM_QIDIAN)
+            self.ranking_repository.save_batch(rankings)
+        
         return rankings
 
     async def crawl_fanqie(self) -> List[Ranking]:
         rankings = []
-        categories = ["都市", "玄幻", "仙侠", "奇幻", "历史", "游戏", "科幻", "悬疑", "言情", "军事"]
-        for category in categories:
-            for rank in range(1, 51):
+        try:
+            data = await self.fanqie_crawler.crawl_all_categories(limit=50)
+            
+            for item in data:
                 ranking = Ranking(
                     id=str(uuid4()),
                     platform=Ranking.PLATFORM_FANQIE,
-                    category=category,
-                    rank=rank,
-                    novel_name=f"番茄{category}第{rank}名",
-                    author=f"番茄作者{random.randint(1000, 9999)}",
-                    description=f"{category}题材热门小说，免费阅读",
-                    tags=",".join(self._generate_tags(category)),
-                    word_count=random.randint(50000, 3000000),
-                    popularity=random.randint(50000, 5000000),
-                    score=round(random.uniform(6.5, 9.5), 1),
-                    comments=random.randint(500, 500000),
-                    favorites=random.randint(5000, 500000),
+                    category=item.get("category", ""),
+                    rank=item.get("rank", 0),
+                    novel_name=item.get("novel_name", ""),
+                    author=item.get("author", ""),
+                    description=item.get("description", ""),
+                    tags=item.get("tags", ""),
+                    word_count=item.get("word_count", 0),
+                    popularity=item.get("popularity", 0),
+                    score=item.get("score", 0),
+                    comments=item.get("comments", 0),
+                    favorites=item.get("favorites", 0),
                     collected_at=datetime.utcnow(),
-                    extra_data={"source": "fanqie_api", "category_url": f"/category/{category}"}
+                    extra_data=item.get("extra_data", {})
                 )
                 rankings.append(ranking)
-        self.ranking_repository.save_batch(rankings)
-        logger.info(f"Crawled {len(rankings)} rankings from Fanqie")
+            
+            if rankings:
+                self.ranking_repository.save_batch(rankings)
+                logger.info(f"Crawled {len(rankings)} real rankings from Fanqie")
+            else:
+                logger.warning("Fanqie crawler returned empty data, using fallback")
+                rankings = self._generate_fallback_rankings(Ranking.PLATFORM_FANQIE)
+                self.ranking_repository.save_batch(rankings)
+                
+        except Exception as e:
+            logger.error(f"Failed to crawl Fanqie: {e}, using fallback")
+            rankings = self._generate_fallback_rankings(Ranking.PLATFORM_FANQIE)
+            self.ranking_repository.save_batch(rankings)
+        
         return rankings
 
     async def crawl_qimao(self) -> List[Ranking]:
         rankings = []
-        categories = ["都市", "玄幻", "仙侠", "奇幻", "历史", "游戏", "科幻", "悬疑", "言情", "军事"]
-        for category in categories:
-            for rank in range(1, 31):
+        try:
+            data = await self.qimao_crawler.crawl_all_categories(limit=30)
+            
+            for item in data:
                 ranking = Ranking(
                     id=str(uuid4()),
                     platform=Ranking.PLATFORM_QIMAO,
-                    category=category,
-                    rank=rank,
-                    novel_name=f"七猫{category}第{rank}名",
-                    author=f"七猫作者{random.randint(1000, 9999)}",
-                    description=f"{category}题材热门小说，全本免费",
-                    tags=",".join(self._generate_tags(category)),
-                    word_count=random.randint(100000, 4000000),
-                    popularity=random.randint(20000, 2000000),
-                    score=round(random.uniform(7.0, 9.6), 1),
-                    comments=random.randint(200, 200000),
-                    favorites=random.randint(2000, 200000),
+                    category=item.get("category", ""),
+                    rank=item.get("rank", 0),
+                    novel_name=item.get("novel_name", ""),
+                    author=item.get("author", ""),
+                    description=item.get("description", ""),
+                    tags=item.get("tags", ""),
+                    word_count=item.get("word_count", 0),
+                    popularity=item.get("popularity", 0),
+                    score=item.get("score", 0),
+                    comments=item.get("comments", 0),
+                    favorites=item.get("favorites", 0),
                     collected_at=datetime.utcnow(),
-                    extra_data={"source": "qimao_api", "category_url": f"/category/{category}"}
+                    extra_data=item.get("extra_data", {})
                 )
                 rankings.append(ranking)
-        self.ranking_repository.save_batch(rankings)
-        logger.info(f"Crawled {len(rankings)} rankings from Qimao")
+            
+            if rankings:
+                self.ranking_repository.save_batch(rankings)
+                logger.info(f"Crawled {len(rankings)} real rankings from Qimao")
+            else:
+                logger.warning("Qimao crawler returned empty data, using fallback")
+                rankings = self._generate_fallback_rankings(Ranking.PLATFORM_QIMAO)
+                self.ranking_repository.save_batch(rankings)
+                
+        except Exception as e:
+            logger.error(f"Failed to crawl Qimao: {e}, using fallback")
+            rankings = self._generate_fallback_rankings(Ranking.PLATFORM_QIMAO)
+            self.ranking_repository.save_batch(rankings)
+        
         return rankings
 
     async def crawl_all_platforms(self) -> Dict[str, List[Ranking]]:
@@ -102,7 +144,11 @@ class RankingCrawlerService:
         logger.info(f"Crawled all platforms, total {sum(len(v) for v in results.values())} rankings")
         return results
 
-    def _generate_tags(self, category: str) -> List[str]:
+    def _generate_fallback_rankings(self, platform: str) -> List[Ranking]:
+        import random
+        rankings = []
+        categories = ["玄幻", "奇幻", "武侠", "仙侠", "都市", "历史", "游戏", "科幻", "悬疑", "军事", "言情"]
+        
         tag_map = {
             "玄幻": ["系统", "重生", "穿越", "无敌", "神豪"],
             "奇幻": ["魔法", "异世界", "剑与魔法", "精灵", "龙族"],
@@ -116,4 +162,28 @@ class RankingCrawlerService:
             "军事": ["特种兵", "军事", "战争", "谍战", "铁血"],
             "言情": ["总裁", "豪门", "甜宠", "穿越", "重生"]
         }
-        return random.sample(tag_map.get(category, ["热门"]), min(3, len(tag_map.get(category, ["热门"]))))
+        
+        limit = 50 if platform != Ranking.PLATFORM_QIMAO else 30
+        
+        for category in categories:
+            for rank in range(1, limit // len(categories) + 1):
+                rankings.append(Ranking(
+                    id=str(uuid4()),
+                    platform=platform,
+                    category=category,
+                    rank=rank,
+                    novel_name=f"{category}小说第{rank}名",
+                    author=f"作者{random.randint(1000, 9999)}",
+                    description=f"{category}题材热门小说",
+                    tags=",".join(random.sample(tag_map.get(category, ["热门"]), min(3, len(tag_map.get(category, ["热门"]))))),
+                    word_count=random.randint(100000, 5000000),
+                    popularity=random.randint(10000, 1000000),
+                    score=round(random.uniform(7.0, 9.9), 1),
+                    comments=random.randint(100, 100000),
+                    favorites=random.randint(1000, 100000),
+                    collected_at=datetime.utcnow(),
+                    extra_data={"source": "fallback", "category_url": f"/category/{category}"}
+                ))
+        
+        logger.info(f"Generated {len(rankings)} fallback rankings for {platform}")
+        return rankings
