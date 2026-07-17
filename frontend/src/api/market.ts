@@ -102,4 +102,152 @@ export const marketApi = {
     if (days) params.days = days
     return apiClient.post('/market/analyzer/full-analysis', {}, { params })
   },
+
+  // ── 创作前研究 ──
+
+  conductResearch(data: ResearchRequest) {
+    return apiClient.post<NovelResearch>('/market/research/conduct', data)
+  },
+
+  quickCheck(data: ResearchRequest) {
+    return apiClient.post<QuickCheckResult>('/market/research/quick-check', data)
+  },
+
+  analyzeGenres(genres: string[]) {
+    return apiClient.post<GenreAnalysisResult>('/market/research/analyze-genres', { genres })
+  },
+
+  getOpeningPatterns(genre: string, topN = 5) {
+    return apiClient.get<OpeningPatternsResult>('/market/research/opening-patterns', {
+      params: { genre, top_n: topN },
+    })
+  },
+
+  checkGoldenFingerConflicts(golden_fingers: string[], platform?: string) {
+    return apiClient.post<ConflictCheckResult>(
+      '/market/research/check-conflicts',
+      golden_fingers,
+      { params: platform ? { platform } : {} },
+    )
+  },
+
+  getGenreOptions() {
+    return apiClient.get<{ genres: GenreOption[] }>('/market/research/options/genres')
+  },
+
+  getGoldenFingerOptions() {
+    return apiClient.get<{ golden_fingers: GoldenFingerOption[] }>(
+      '/market/research/options/golden-fingers',
+    )
+  },
+}
+
+// ── 类型定义 ──
+
+export interface ResearchRequest {
+  genres: string[]
+  golden_fingers: string[]
+  keywords: string[]
+  target_word_count: number
+  target_chapter_count: number
+  additional_notes: string
+  platform?: string | null
+}
+
+export interface NovelResearch {
+  research_id: string
+  status: string
+  sample_count: number
+  overall_score: number
+  risk_level: string
+  risk_factors: string[]
+  timing_score: number
+  timing_advice: string
+  ai_summary: string
+  ai_suggestions: string
+  ai_warnings: string
+  genre_stats: GenreStat[]
+  opening_patterns: OpeningPattern[]
+  recommendations: Recommendation[]
+}
+
+export interface GenreStat {
+  genre: string
+  total_novels: number
+  successful_novels: number
+  success_rate: number
+  avg_word_count: number
+  median_word_count: number
+  avg_chapter_count: number
+  avg_chapter_words: number
+  optimal_chapter_words: number
+  avg_peak_rank: number
+  avg_popularity: number
+  trend: string
+  trend_change: number
+}
+
+export interface OpeningPattern {
+  name: string
+  description: string
+  success_count: number
+  total_count: number
+  success_rate: number
+  avg_popularity: number
+  sample_novels: string[]
+  chapter_range: string
+  key_points: string[]
+}
+
+export interface Recommendation {
+  type: string
+  title: string
+  description: string
+  confidence: number
+  reason: string
+  references?: string[]
+}
+
+export interface QuickCheckResult {
+  user_request: ResearchRequest
+  genre_stats: GenreStat[]
+  conflict_check: {
+    conflicts: any[]
+    recommendations: any[]
+  }
+  saturation: {
+    level: string
+    score: number
+    message: string
+  }
+}
+
+export interface GenreAnalysisResult {
+  genres: string[]
+  stats: GenreStat[]
+}
+
+export interface OpeningPatternsResult {
+  genre: string
+  patterns: OpeningPattern[]
+}
+
+export interface ConflictCheckResult {
+  user_golden_fingers: string[]
+  current_hot_golden_fingers: string[]
+  conflicts: any[]
+  saturation: any
+  recommendations: any[]
+}
+
+export interface GenreOption {
+  value: string
+  label: string
+  description: string
+}
+
+export interface GoldenFingerOption {
+  value: string
+  label: string
+  category: string
 }

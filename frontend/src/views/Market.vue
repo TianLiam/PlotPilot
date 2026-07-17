@@ -22,6 +22,12 @@
               </template>
               更新热点
             </n-button>
+            <n-button type="info" @click="goResearch">
+              <template #icon>
+                <n-icon><IconSearch /></n-icon>
+              </template>
+              创作前研究
+            </n-button>
           </n-space>
         </template>
       </n-page-header>
@@ -405,6 +411,10 @@ const loadCoolPoints = async () => {
 
 const goHome = () => {
   router.push('/')
+}
+
+const goResearch = () => {
+  router.push('/research')
 }
 
 const handleCrawlRankings = async () => {
