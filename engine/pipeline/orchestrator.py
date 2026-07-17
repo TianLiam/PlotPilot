@@ -103,9 +103,13 @@ class PipelineOrchestrator:
             total_agents=len(self.AGENT_ORDER),
         )
         
-        # 初始化所有Agent的输出状态
+        # 初始化所有Agent的输出状态（创建新实例，避免共享引用）
+        from engine.pipeline.entities.pipeline_entities import AgentOutput, AgentStatus
         for agent_type in self.AGENT_ORDER:
-            run.agent_outputs[agent_type.value] = self.agents[agent_type].output
+            run.agent_outputs[agent_type.value] = AgentOutput(
+                agent_type=agent_type,
+                status=AgentStatus.PENDING,
+            )
         
         self.active_pipelines[pipeline_id] = run
         

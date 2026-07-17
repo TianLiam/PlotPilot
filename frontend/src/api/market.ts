@@ -142,6 +142,33 @@ export const marketApi = {
   },
 }
 
+// ── 拆书 API ──
+
+  deconstructNovel(data: { platform: string; book_id: string; max_chapters?: number }) {
+    return apiClient.post<any>('/market/deconstruction/run', data)
+  },
+
+  getDeconstruction(id: string) {
+    return apiClient.get<any>(`/market/deconstruction/${id}`)
+  },
+
+  listDeconstructions(platform?: string, category?: string, limit = 20) {
+    return apiClient.get<any[]>('/market/deconstruction', {
+      params: { platform, category, limit },
+    })
+  },
+
+  getDNALibrary(limit = 50) {
+    return apiClient.get<any[]>('/market/deconstruction/dna/library', {
+      params: { limit },
+    })
+  },
+
+  getSingleDNA(deconstructionId: string) {
+    return apiClient.get<any>(`/market/deconstruction/dna/${deconstructionId}`)
+  },
+}
+
 // ── 类型定义 ──
 
 export interface ResearchRequest {
@@ -250,31 +277,4 @@ export interface GoldenFingerOption {
   value: string
   label: string
   category: string
-}
-
-// ── 拆书 API ──
-
-  deconstructNovel(data: { platform: string; book_id: string; max_chapters?: number }) {
-    return apiClient.post<any>('/market/deconstruction/run', data)
-  },
-
-  getDeconstruction(id: string) {
-    return apiClient.get<any>(`/market/deconstruction/${id}`)
-  },
-
-  listDeconstructions(platform?: string, category?: string, limit = 20) {
-    return apiClient.get<any[]>('/market/deconstruction', {
-      params: { platform, category, limit },
-    })
-  },
-
-  getDNALibrary(limit = 50) {
-    return apiClient.get<any[]>('/market/deconstruction/dna/library', {
-      params: { limit },
-    })
-  },
-
-  getSingleDNA(deconstructionId: string) {
-    return apiClient.get<any>(`/market/deconstruction/dna/${deconstructionId}`)
-  },
 }

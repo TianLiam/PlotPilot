@@ -247,7 +247,7 @@ async def add_samples_batch(
                 golden_fingers=s.golden_fingers,
                 genre_tags=s.genre_tags,
                 opening_type=s.opening_type,
-                is_successful=s.isuccessful if hasattr(s, 'issuccessful') else s.is_successful,
+                is_successful=s.is_successful,
                 peak_rank=s.peak_rank,
                 days_on_chart=s.days_on_chart,
                 trend_direction=s.trend_direction,

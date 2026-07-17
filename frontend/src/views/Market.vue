@@ -491,12 +491,19 @@ const selectGenre = (item: GenreRecommendation) => {
 
 const useTemplate = async (template: Template) => {
   try {
+    await marketApi.useTemplate(template.id)
     const res = await marketApi.getTemplateDetail(template.id)
     selectedTemplate.value = res
     templateDetailContent.value = res.content || ''
     templateDetailVisible.value = true
+    nMessage.success('模板使用成功')
+    loadGoldenFingers()
+    loadCharacters()
+    loadWorldviews()
+    loadCoolPoints()
   } catch (e) {
-    console.error('Failed to get template detail:', e)
+    console.error('Failed to use template:', e)
+    nMessage.error('模板使用失败')
   }
 }
 

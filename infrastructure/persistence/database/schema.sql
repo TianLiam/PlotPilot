@@ -913,3 +913,99 @@ CREATE INDEX IF NOT EXISTS idx_dag_versions_novel_version ON dag_versions(novel_
 -- 索引：按更新时间排序（用于清理旧版本）
 CREATE INDEX IF NOT EXISTS idx_dag_versions_updated_at ON dag_versions(novel_id, updated_at DESC);
 
+
+-- ========== 市场分析模块（AI爆款工厂）==========
+
+-- 动态模板表（自动发现的金手指/人物/世界观/爽点模板）
+CREATE TABLE IF NOT EXISTS discovered_templates (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    pattern_type TEXT NOT NULL,
+    genre TEXT,
+    content TEXT,
+    occurrence_count INTEGER DEFAULT 1,
+    avg_rank REAL DEFAULT 0,
+    trend TEXT DEFAULT 'stable',
+    trend_value REAL DEFAULT 0,
+    confidence_score REAL DEFAULT 0,
+    tags TEXT,
+    source_novels TEXT,
+    status TEXT DEFAULT 'active',
+    usage_count INTEGER DEFAULT 0,
+    last_used_at TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_templates_type ON discovered_templates(pattern_type);
+CREATE INDEX IF NOT EXISTS idx_templates_genre ON discovered_templates(genre);
+CREATE INDEX IF NOT EXISTS idx_templates_trend ON discovered_templates(trend, confidence_score DESC);
+
+-- 榜单快照表（每日保存各平台排行榜）
+CREATE TABLE IF NOT EXISTS ranking_snapshots (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    snapshot_date TEXT NOT NULL,
+    platform TEXT NOT NULL,
+    category TEXT NOT NULL,
+    items_json TEXT NOT NULL,
+    total_count INTEGER DEFAULT 0,
+    collected_at TEXT NOT NULL,
+    UNIQUE(snapshot_date, platform, category)
+);
+CREATE INDEX IF NOT EXISTS idx_ranking_snapshots_date ON ranking_snapshots(snapshot_date, platform, category);
+
+-- 热点快照表（每日保存热点话题）
+CREATE TABLE IF NOT EXISTS hot_topic_snapshots (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    snapshot_date TEXT NOT NULL,
+    source TEXT NOT NULL,
+    items_json TEXT NOT NULL,
+    total_count INTEGER DEFAULT 0,
+    collected_at TEXT NOT NULL,
+    UNIQUE(snapshot_date, source)
+);
+CREATE INDEX IF NOT EXISTS idx_hot_topic_snapshots_date ON hot_topic_snapshots(snapshot_date, source);
+
+-- 趋势预警表（题材涨跌预警）
+CREATE TABLE IF NOT EXISTS trend_alerts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    alert_type TEXT NOT NULL,
+    severity TEXT NOT NULL,
+    genre TEXT NOT NULL,
+    platform TEXT NOT NULL,
+    message TEXT NOT NULL,
+    change_value REAL DEFAULT 0,
+    duration_days INTEGER DEFAULT 0,
+    is_active INTEGER DEFAULT 1,
+    created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_trend_alerts_active ON trend_alerts(is_active, created_at DESC);
+
+-- 历史小说样本表（用于创作前研究的统计分析）
+CREATE TABLE IF NOT EXISTS historical_novel_samples (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    novel_id TEXT NOT NULL,
+    novel_name TEXT NOT NULL,
+    author TEXT,
+    platform TEXT NOT NULL,
+    category TEXT,
+    word_count INTEGER DEFAULT 0,
+    chapter_count INTEGER DEFAULT 0,
+    popularity INTEGER DEFAULT 0,
+    avg_chapter_words INTEGER DEFAULT 0,
+    golden_fingers TEXT,
+    genre_tags TEXT,
+    opening_type TEXT,
+    is_successful INTEGER DEFAULT 0,
+    peak_rank INTEGER DEFAULT 999,
+    days_on_chart INTEGER DEFAULT 0,
+    trend_direction TEXT DEFAULT 'stable',
+    first_seen_date TEXT,
+    last_seen_date TEXT,
+    metadata TEXT,
+    created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_samples_genre ON historical_novel_samples(platform, category);
+CREATE INDEX IF NOT EXISTS idx_samples_tags ON historical_novel_samples(genre_tags);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_samples_unique ON historical_novel_samples(novel_id, platform);
+
