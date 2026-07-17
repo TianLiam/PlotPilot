@@ -16,6 +16,7 @@ const NovelResearch = () => import('../views/NovelResearch.vue')
 const Deconstruction = () => import('../views/Deconstruction.vue')
 const DeconstructionDetail = () => import('../views/DeconstructionDetail.vue')
 const PipelineMonitor = () => import('../views/PipelineMonitor.vue')
+const Subscription = () => import('../views/Subscription.vue')
 
 const Library = () => import('../views/Library.vue')
 const Studio = () => import('../views/Studio.vue')
@@ -84,6 +85,12 @@ const router = createRouter({
           name: 'Library',
           component: Library,
           meta: { title: '我的书架' },
+        },
+        {
+          path: 'subscription',
+          name: 'Subscription',
+          component: Subscription,
+          meta: { title: '会员订阅' },
         },
       ],
     },

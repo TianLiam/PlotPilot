@@ -140,9 +140,6 @@ export const marketApi = {
       '/market/research/options/golden-fingers',
     )
   },
-}
-
-// ── 拆书 API ──
 
   deconstructNovel(data: { platform: string; book_id: string; max_chapters?: number }) {
     return apiClient.post<any>('/market/deconstruction/run', data)

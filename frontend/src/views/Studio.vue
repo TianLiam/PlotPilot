@@ -92,7 +92,7 @@
           <div class="step-tools">
             <n-grid :cols="3" :x-gap="16" :y-gap="16" responsive="screen">
               <n-gi v-for="tool in currentStepInfo.tools" :key="tool.name">
-                <div class="tool-card" @click="tool.action ? tool.action() : goWorkbench()">
+                <div class="tool-card" @click="(tool as any).action ? (tool as any).action() : goWorkbench()">
                   <div class="tool-icon">{{ tool.icon }}</div>
                   <div class="tool-name">{{ tool.name }}</div>
                   <div class="tool-desc">{{ tool.desc }}</div>

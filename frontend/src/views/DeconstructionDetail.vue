@@ -175,10 +175,10 @@
                 :data="detail.chapter_beats"
                 :pagination="{ pageSize: 10 }"
                 size="small"
-                :row-class-name="(row) => ({
+                :row-class-name="(row: any) => ({
                   'row-selected': row.chapter_number === selectedChapter,
                 })"
-                @row-click="(row) => selectChapter(row.chapter_number)"
+                @row-click="(row: any) => selectChapter(row.chapter_number)"
               />
             </n-card>
 
