@@ -95,6 +95,12 @@ def register_api_routes(app: FastAPI) -> None:
         knowledge_graph_routes,
         worldbuilding_routes,
     )
+    from interfaces.api.v1.market import (
+        crawler_router,
+        analyzer_router,
+        recommender_router,
+        template_router,
+    )
 
     _include_registered_routes(
         app,
@@ -146,6 +152,10 @@ def register_api_routes(app: FastAPI) -> None:
             RouterRegistration(monitor.router, API_V1_PREFIX),
             RouterRegistration(llm_control.router, API_V1_PREFIX),
             RouterRegistration(anti_ai_routes.router, API_V1_PREFIX),
+            RouterRegistration(crawler_router, API_V1_PREFIX, ("market-crawler",)),
+            RouterRegistration(analyzer_router, API_V1_PREFIX, ("market-analyzer",)),
+            RouterRegistration(recommender_router, API_V1_PREFIX, ("market-recommender",)),
+            RouterRegistration(template_router, API_V1_PREFIX, ("market-templates",)),
         ),
     )
 
