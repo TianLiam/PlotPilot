@@ -9,6 +9,40 @@ export interface Template {
   popularity: number
   usage_count: number
   content?: string
+  source?: 'built_in' | 'crawler'
+  confidence_score?: number
+  occurrence_count?: number
+  trend?: string
+  tags?: string[]
+  source_novels?: Array<{
+    platform: string
+    novel_name: string
+    rank: number
+  }>
+}
+
+export interface DiscoveredTemplate {
+  id: string
+  name: string
+  description: string
+  pattern_type: string
+  genre: string
+  content: string
+  occurrence_count: number
+  avg_rank: number
+  trend: string
+  trend_value: number
+  confidence_score: number
+  tags: string[]
+  source_novels: Array<{
+    platform: string
+    novel_name: string
+    rank: number
+  }>
+  status: string
+  usage_count: number
+  created_at: string
+  updated_at: string
 }
 
 export interface GenreRecommendation {
@@ -101,6 +135,34 @@ export const marketApi = {
     const params: Record<string, number> = {}
     if (days) params.days = days
     return apiClient.post('/market/analyzer/full-analysis', {}, { params })
+  },
+
+  getDiscoveredTemplates(patternType?: string, genre?: string, limit = 50) {
+    const params: Record<string, string | number> = { limit }
+    if (patternType) params.pattern_type = patternType
+    if (genre) params.genre = genre
+    return apiClient.get<DiscoveredTemplate[]>('/market/discovery/templates', { params })
+  },
+
+  runTemplateDiscovery(data: {
+    platform?: string
+    category?: string
+    top_n?: number
+    max_chapters?: number
+  }) {
+    return apiClient.post<{ message: string }>('/market/discovery/run', data)
+  },
+
+  runDailyTemplateDiscovery(data: {
+    platforms: string[]
+    categories: string[]
+    top_n?: number
+  }) {
+    return apiClient.post<{ message: string }>('/market/discovery/daily', data)
+  },
+
+  markDiscoveredTemplateUsed(id: string) {
+    return apiClient.post(`/market/discovery/templates/${id}/use`)
   },
 
   // ── 创作前研究 ──

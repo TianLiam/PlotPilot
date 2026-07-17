@@ -10,19 +10,18 @@ logger = logging.getLogger(__name__)
 
 class FanqieCrawler(BaseCrawler):
     BASE_URL = "https://fanqienovel.com"
-    RANKING_API = "https://fanqienovel.com/api/novel/v1/ranking"
-
+    
     CATEGORIES = {
-        "都市": {"nodeId": 1},
-        "玄幻": {"nodeId": 2},
-        "仙侠": {"nodeId": 3},
-        "奇幻": {"nodeId": 4},
-        "历史": {"nodeId": 5},
-        "游戏": {"nodeId": 6},
-        "科幻": {"nodeId": 7},
-        "悬疑": {"nodeId": 8},
-        "言情": {"nodeId": 9},
-        "军事": {"nodeId": 10},
+        "都市": {"gender": 1, "rankMold": 2, "categoryId": 262},
+        "玄幻": {"gender": 1, "rankMold": 2, "categoryId": 257},
+        "仙侠": {"gender": 1, "rankMold": 2, "categoryId": 1140},
+        "奇幻": {"gender": 1, "rankMold": 2, "categoryId": 1141},
+        "历史": {"gender": 1, "rankMold": 2, "categoryId": 1142},
+        "游戏": {"gender": 1, "rankMold": 2, "categoryId": 263},
+        "科幻": {"gender": 1, "rankMold": 2, "categoryId": 8},
+        "悬疑": {"gender": 1, "rankMold": 2, "categoryId": 264},
+        "言情": {"gender": 0, "rankMold": 2, "categoryId": 265},
+        "军事": {"gender": 1, "rankMold": 2, "categoryId": 266},
     }
 
     async def crawl_ranking(self, category: str, limit: int = 20) -> List[Dict[str, Any]]:
@@ -33,50 +32,69 @@ class FanqieCrawler(BaseCrawler):
             return results
 
         try:
-            params = {
-                "nodeId": category_info["nodeId"],
-                "page": 1,
-                "pageSize": limit,
-                "rankType": 1,
-            }
-
+            ranking_id = f"{category_info['gender']}_{category_info['rankMold']}_{category_info['categoryId']}"
+            url = f"{self.BASE_URL}/rank/{ranking_id}"
+            
             headers = self._get_default_headers(referer=self.BASE_URL)
-            response = await self.safe_request("get", self.RANKING_API, params=params, headers=headers)
+            response = await self.safe_request("get", url, headers=headers)
             
             if response is None:
                 return results
 
-            data = response.json()
+            html = response.text
             
-            if data.get("code") != 0 or not data.get("data"):
-                logger.warning(f"Fanqie API returned error: {data}")
-                return results
+            import re
+            data_match = re.search(r'window\.__INITIAL_STATE__\s*=\s*({.*?});', html, re.DOTALL)
+            if not data_match:
+                data_match = re.search(r'"data"\s*:\s*({.*?})', html, re.DOTALL)
+            
+            if data_match:
+                try:
+                    data_str = data_match.group(1)
+                    data = json.loads(data_str)
+                    
+                    books = []
+                    if isinstance(data, dict):
+                        for key, value in data.items():
+                            if isinstance(value, list) and len(value) > 0 and isinstance(value[0], dict):
+                                books = value
+                                break
+                            elif isinstance(value, dict) and 'rankingList' in value:
+                                books = value['rankingList']
+                                break
+                    
+                    if not books:
+                        books = data.get('rankingList', [])
+                    
+                    for rank, book in enumerate(books[:limit], 1):
+                        result = {
+                            "platform": "fanqie",
+                            "category": category,
+                            "rank": rank,
+                            "novel_name": self.clean_text(book.get("bookName") or book.get("name") or book.get("title")),
+                            "author": self.clean_text(book.get("authorName") or book.get("author")),
+                            "description": self.clean_text(book.get("intro") or book.get("description")),
+                            "tags": ",".join(book.get("tags", [])),
+                            "word_count": self.parse_int(book.get("wordCount") or book.get("word")),
+                            "popularity": self.parse_int(book.get("totalRead") or book.get("readCount")),
+                            "score": self.parse_float(book.get("score", 0)),
+                            "comments": self.parse_int(book.get("commentCount") or book.get("comments")),
+                            "favorites": self.parse_int(book.get("collectCount") or book.get("favorites")),
+                            "collected_at": datetime.utcnow(),
+                            "extra_data": {
+                                "source": "fanqie_html",
+                                "book_id": book.get("bookId") or book.get("id"),
+                                "ranking_id": ranking_id,
+                            },
+                        }
+                        results.append(result)
 
-            books = data["data"].get("rankingList", [])
-            for rank, book in enumerate(books, 1):
-                result = {
-                    "platform": "fanqie",
-                    "category": category,
-                    "rank": rank,
-                    "novel_name": self.clean_text(book.get("bookName")),
-                    "author": self.clean_text(book.get("authorName")),
-                    "description": self.clean_text(book.get("intro")),
-                    "tags": ",".join(book.get("tags", [])),
-                    "word_count": self.parse_int(book.get("wordCount")),
-                    "popularity": self.parse_int(book.get("totalRead")),
-                    "score": self.parse_float(book.get("score", 0)),
-                    "comments": self.parse_int(book.get("commentCount")),
-                    "favorites": self.parse_int(book.get("collectCount")),
-                    "collected_at": datetime.utcnow(),
-                    "extra_data": {
-                        "source": "fanqie_api",
-                        "book_id": book.get("bookId"),
-                        "url": f"{self.BASE_URL}/book/{book.get('bookId')}",
-                    },
-                }
-                results.append(result)
-
-            logger.info(f"Crawled {len(results)} novels from Fanqie category: {category}")
+                    logger.info(f"Crawled {len(results)} novels from Fanqie category: {category}")
+                except json.JSONDecodeError as e:
+                    logger.error(f"Failed to parse Fanqie JSON: {e}")
+            else:
+                logger.warning("Could not find data in Fanqie HTML")
+            
             await self._delay()
 
         except Exception as e:

@@ -2,12 +2,18 @@
   <div class="app-layout">
     <header class="app-header">
       <div class="header-inner">
-        <div class="brand" @click="goHome">
-          <span class="brand-logo">墨</span>
-          <span class="brand-name">墨枢 · AI 爆款工厂</span>
-        </div>
+        <button class="brand" type="button" aria-label="返回创作总览" @click="goHome">
+          <span class="brand-logo" aria-hidden="true">墨</span>
+          <span class="brand-copy">
+            <span class="brand-line">
+              <strong class="brand-name">墨枢</strong>
+              <span class="brand-product">PlotPilot</span>
+            </span>
+            <span class="brand-tagline">长篇叙事引擎</span>
+          </span>
+        </button>
 
-        <nav class="main-nav">
+        <nav class="main-nav" aria-label="主导航">
           <router-link
             v-for="item in navItems"
             :key="item.path"
@@ -15,8 +21,8 @@
             class="nav-item"
             active-class="is-active"
           >
-            <span class="nav-icon">
-              <component :is="item.icon" :size="18" />
+            <span class="nav-icon" aria-hidden="true">
+              <component :is="item.icon" :size="17" />
             </span>
             <span class="nav-label">{{ item.label }}</span>
             <span v-if="item.badge" class="nav-badge">{{ item.badge }}</span>
@@ -26,14 +32,14 @@
         <div class="header-right">
           <n-button
             quaternary
-            circle
-            size="medium"
+            class="settings-button"
             aria-label="应用设置"
             @click="appSettingsShell.open()"
           >
             <template #icon>
-              <n-icon :component="IconSettings" :size="20" />
+              <n-icon :component="IconSettings" :size="19" />
             </template>
+            <span class="settings-label">设置</span>
           </n-button>
         </div>
       </div>
@@ -58,39 +64,30 @@ import { useAppSettingsShellStore } from '@/stores/appSettingsShellStore'
 const router = useRouter()
 const appSettingsShell = useAppSettingsShellStore()
 
-const IconDashboard = () =>
-  h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', width: '1em', height: '1em' },
-    h('path', { fill: 'currentColor', d: 'M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z' }))
+const svgIcon = (path: string) => () =>
+  h('svg', {
+    xmlns: 'http://www.w3.org/2000/svg',
+    viewBox: '0 0 24 24',
+    width: '1em',
+    height: '1em',
+    fill: 'none',
+    stroke: 'currentColor',
+    'stroke-width': 1.8,
+    'stroke-linecap': 'round',
+    'stroke-linejoin': 'round',
+  }, h('path', { d: path }))
 
-const IconTrending = () =>
-  h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', width: '1em', height: '1em' },
-    h('path', { fill: 'currentColor', d: 'M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z' }))
-
-const IconWorkshop = () =>
-  h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', width: '1em', height: '1em' },
-    h('path', { fill: 'currentColor', d: 'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 2l5 5h-5V4zM6 20V4h6v6h6v10H6z' }))
-
-const IconLibrary = () =>
-  h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', width: '1em', height: '1em' },
-    h('path', { fill: 'currentColor', d: 'M4 6H2v14a2 2 0 002 2h14v-2H4V6zm16-4H8a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V4a2 2 0 00-2-2zm0 14H8V4h12v12zM10 6h8v2h-8zm0 4h8v2h-8zm0 4h5v2h-5z' }))
-
-const IconSettings = () =>
-  h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', width: '1em', height: '1em' },
-    h('path', {
-      fill: 'currentColor',
-      d: 'M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.49.49 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 00-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1112 8.4a3.6 3.6 0 010 7.2z',
-    }))
-
-const IconSubscription = () =>
-  h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', width: '1em', height: '1em' },
-    h('path', { fill: 'currentColor', d: 'M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z' }))
+const IconDashboard = svgIcon('M4 4h6v6H4zM14 4h6v4h-6zM14 12h6v8h-6zM4 14h6v6H4z')
+const IconTrending = svgIcon('M4 17l5-5 4 3 7-8M15 7h5v5')
+const IconWorkshop = svgIcon('M5 3h10l4 4v14H5zM14 3v5h5M8 13h8M8 17h6')
+const IconLibrary = svgIcon('M4 5.5l5-1.5v15l-5 1.5zM9 4l6 1.5v15L9 19zM15 5.5l5-1.5v15l-5 1.5z')
+const IconSettings = svgIcon('M12 15.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM19.4 15a1.7 1.7 0 00.3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.6v.2h-4V21a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 00.3-1.9A1.7 1.7 0 003 14H2.8v-4H3a1.7 1.7 0 001.6-1 1.7 1.7 0 00-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 009 4.6 1.7 1.7 0 0010 3V2.8h4V3a1.7 1.7 0 001 1.6 1.7 1.7 0 001.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 00-.3 1.9 1.7 1.7 0 001.6 1h.2v4H21a1.7 1.7 0 00-1.6 1z')
 
 const navItems = [
-  { path: '/dashboard', label: '驾驶舱', icon: IconDashboard, badge: '' },
-  { path: '/market', label: '市场洞察', icon: IconTrending, badge: 'New' },
+  { path: '/dashboard', label: '创作总览', icon: IconDashboard, badge: '' },
+  { path: '/market', label: '市场洞察', icon: IconTrending, badge: '趋势' },
   { path: '/studio', label: '创作工坊', icon: IconWorkshop, badge: '' },
-  { path: '/library', label: '我的书架', icon: IconLibrary, badge: '' },
-  { path: '/subscription', label: '会员订阅', icon: IconSubscription, badge: '' },
+  { path: '/library', label: '作品库', icon: IconLibrary, badge: '' },
 ]
 
 function goHome() {
@@ -111,17 +108,19 @@ function goHome() {
 .app-header {
   position: relative;
   z-index: 100;
-  background: var(--app-surface);
+  flex: 0 0 auto;
+  background: color-mix(in srgb, var(--app-surface) 92%, transparent);
   border-bottom: 1px solid var(--app-border);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.32) inset;
+  backdrop-filter: blur(18px);
 }
 
 .header-inner {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto minmax(180px, 1fr);
   align-items: center;
-  justify-content: space-between;
-  height: 60px;
-  padding: 0 24px;
+  height: 68px;
+  padding: 0 28px;
   max-width: 1600px;
   margin: 0 auto;
   gap: 24px;
@@ -130,86 +129,144 @@ function goHome() {
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-self: start;
+  gap: 11px;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border: 0;
   cursor: pointer;
-  user-select: none;
-  flex-shrink: 0;
+  text-align: left;
+}
+
+.brand:focus-visible,
+.nav-item:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 4px;
+  border-radius: 10px;
 }
 
 .brand-logo {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, #232a42, #111827);
+  color: #f8f4e8;
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 700;
+  border-radius: 10px;
+  box-shadow: 0 5px 14px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+}
+
+[data-theme='dark'] .brand-logo,
+[data-theme='anchor'] .brand-logo {
+  background: linear-gradient(145deg, color-mix(in srgb, var(--color-brand) 28%, #20283b), #0e1420);
+}
+
+.brand-copy,
+.brand-line {
   display: flex;
   align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, var(--color-brand) 0%, var(--color-gold) 100%);
-  color: #fff;
-  font-weight: 700;
-  font-size: 16px;
-  border-radius: 8px;
-  letter-spacing: -0.02em;
+}
+
+.brand-copy {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.brand-line {
+  gap: 7px;
+  line-height: 1.1;
 }
 
 .brand-name {
-  font-size: 16px;
-  font-weight: 700;
   color: var(--app-text-primary);
-  letter-spacing: -0.01em;
+  font-size: 16px;
+  letter-spacing: 0.02em;
+}
+
+.brand-product {
+  color: var(--app-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.brand-tagline {
+  color: var(--app-text-muted);
+  font-size: 10px;
+  letter-spacing: 0.08em;
 }
 
 .main-nav {
   display: flex;
   align-items: center;
-  gap: 4px;
-  flex: 1;
   justify-content: center;
+  gap: 2px;
+  padding: 4px;
+  background: var(--app-surface-subtle);
+  border: 1px solid var(--app-border);
+  border-radius: 13px;
 }
 
 .nav-item {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border-radius: 10px;
-  text-decoration: none;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 13px;
+  border-radius: 9px;
   color: var(--app-text-secondary);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
-  transition: all 0.2s ease;
-  position: relative;
+  text-decoration: none;
+  transition: color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
 }
 
 .nav-item:hover {
   color: var(--app-text-primary);
-  background: var(--app-surface-subtle);
 }
 
 .nav-item.is-active {
   color: var(--color-brand);
-  background: var(--color-brand-light);
-  font-weight: 600;
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow-sm);
+  font-weight: 650;
 }
 
 .nav-icon {
   display: flex;
   align-items: center;
+  opacity: 0.82;
 }
 
 .nav-badge {
-  font-size: 10px;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 6px;
-  background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
-  color: #fff;
-  line-height: 1;
+  padding: 1px 5px;
+  border: 1px solid var(--color-brand-border);
+  border-radius: 999px;
+  color: var(--color-brand);
+  background: var(--color-brand-light);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.5;
 }
 
 .header-right {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
+  justify-content: flex-end;
+}
+
+.settings-button {
+  color: var(--app-text-secondary);
+}
+
+.settings-label {
+  font-size: 13px;
 }
 
 .app-main {
@@ -222,45 +279,92 @@ function goHome() {
 
 .page-fade-enter-active,
 .page-fade-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition: opacity 0.18s ease, transform 0.18s ease;
 }
 
 .page-fade-enter-from {
   opacity: 0;
-  transform: translateY(6px);
+  transform: translateY(4px);
 }
 
 .page-fade-leave-to {
   opacity: 0;
-  transform: translateY(-4px);
+  transform: translateY(-3px);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1180px) {
   .header-inner {
-    padding: 0 16px;
-    gap: 12px;
+    grid-template-columns: auto 1fr auto;
+    gap: 14px;
+    padding: 0 20px;
   }
 
-  .brand-name {
-    display: none;
-  }
-
-  .nav-label {
+  .brand-tagline,
+  .brand-product {
     display: none;
   }
 
   .nav-item {
-    padding: 8px 10px;
+    padding: 0 10px;
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 900px) {
+  .header-inner {
+    height: 62px;
+    padding: 0 14px;
+  }
+
+  .brand-copy,
+  .nav-label,
+  .settings-label {
+    display: none;
+  }
+
+  .main-nav {
+    justify-self: center;
+  }
+
+  .nav-item {
+    padding: 0 11px;
+  }
+
   .nav-badge {
     position: absolute;
-    top: 4px;
-    right: 4px;
-    font-size: 9px;
-    padding: 1px 4px;
+    top: 3px;
+    right: 3px;
+    width: 5px;
+    height: 5px;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    background: var(--color-brand);
+  }
+}
+
+@media (max-width: 560px) {
+  .header-inner {
+    grid-template-columns: auto 1fr;
+  }
+
+  .header-right {
+    display: none;
+  }
+
+  .brand-logo {
+    width: 34px;
+    height: 34px;
+  }
+
+  .main-nav {
+    justify-self: end;
+    max-width: calc(100vw - 66px);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .main-nav::-webkit-scrollbar {
+    display: none;
   }
 }
 </style>

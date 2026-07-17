@@ -3,7 +3,7 @@ import logging
 from typing import Dict, Any
 
 from engine.pipeline.agents.base_agent import BaseAgent
-from engine.pipeline.entities.pipeline_entities import AgentType
+from engine.pipeline.entities.pipeline_entities import AgentType, PipelineContext
 
 logger = logging.getLogger(__name__)
 

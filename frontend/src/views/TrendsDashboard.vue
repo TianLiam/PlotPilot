@@ -1,26 +1,40 @@
 <template>
   <div class="trends-page">
-    <div class="trends-header">
-      <div class="header-inner">
-        <div class="header-left">
-          <h1 class="page-title">趋势大盘</h1>
-          <p class="page-subtitle">实时追踪市场动态，把握创作风口</p>
-        </div>
-        <div class="header-right">
+    <MarketSectionHeader
+      title="趋势大盘"
+      subtitle="把榜单波动拆成上涨、退潮与持续热门三类信号，先看变化，再决定是否跟进。"
+      :back-to="backTarget"
+      :back-label="backLabel"
+    >
+      <template #actions>
+        <div class="range-control">
+          <span>观察窗口</span>
           <n-radio-group v-model:value="timeRange" size="medium">
             <n-radio-button value="7">7天</n-radio-button>
             <n-radio-button value="30">30天</n-radio-button>
             <n-radio-button value="90">90天</n-radio-button>
           </n-radio-group>
         </div>
-      </div>
-    </div>
+      </template>
+    </MarketSectionHeader>
 
     <div class="trends-content">
+      <section class="data-note">
+        <span class="data-note-mark">DATA</span>
+        <div>
+          <strong>趋势需要连续快照才能成立</strong>
+          <p>当前图表优先读取榜单快照；样本不足时展示趋势估算，刷新榜单后会逐日积累可信度。</p>
+        </div>
+        <div class="data-note-tags">
+          <n-tag v-if="focusGenre" :bordered="false" type="success">聚焦：{{ focusGenre }}</n-tag>
+          <n-tag :bordered="false" type="info">{{ timeRange }} 天窗口</n-tag>
+        </div>
+      </section>
+
       <n-grid :cols="3" :x-gap="16" :y-gap="16" responsive="screen" class="alert-section">
         <n-gi>
           <div class="alert-card alert-up">
-            <div class="alert-icon">🚀</div>
+            <div class="alert-icon">UP</div>
             <div class="alert-info">
               <div class="alert-value">{{ risingGenres.length }}</div>
               <div class="alert-label">暴涨题材</div>
@@ -29,7 +43,7 @@
         </n-gi>
         <n-gi>
           <div class="alert-card alert-down">
-            <div class="alert-icon">📉</div>
+            <div class="alert-icon">DN</div>
             <div class="alert-info">
               <div class="alert-value">{{ fallingGenres.length }}</div>
               <div class="alert-label">下跌题材</div>
@@ -38,7 +52,7 @@
         </n-gi>
         <n-gi>
           <div class="alert-card alert-hot">
-            <div class="alert-icon">🔥</div>
+            <div class="alert-icon">HOT</div>
             <div class="alert-info">
               <div class="alert-value">{{ hotGenres.length }}</div>
               <div class="alert-label">持续热门</div>
@@ -49,7 +63,11 @@
 
       <n-grid :cols="2" :x-gap="20" :y-gap="20" responsive="screen" class="charts-section">
         <n-gi :span="2">
-          <n-card class="chart-card" :bordered="false" title="题材热度走势">
+          <n-card
+            class="chart-card"
+            :bordered="false"
+            :title="focusGenre ? `${focusGenre} · 题材热度走势` : '题材热度走势'"
+          >
             <ChartWrapper
               :option="trendLineOption"
               height="360px"
@@ -84,7 +102,7 @@
           <n-card class="panel-card" :bordered="false">
             <template #header>
               <div class="panel-header">
-                <span class="panel-title">📈 涨幅榜 TOP5</span>
+                <span class="panel-title">涨幅榜 TOP 5</span>
               </div>
             </template>
             <div class="rank-list">
@@ -92,6 +110,7 @@
                 v-for="(item, idx) in risingGenres"
                 :key="item.name"
                 class="rank-item"
+                :class="{ 'is-focus': matchesFocus(item.name) }"
               >
                 <div class="rank-num" :class="`rank-${idx + 1}`">{{ idx + 1 }}</div>
                 <div class="rank-info">
@@ -108,7 +127,7 @@
           <n-card class="panel-card" :bordered="false">
             <template #header>
               <div class="panel-header">
-                <span class="panel-title">📉 跌幅榜 TOP5</span>
+                <span class="panel-title">跌幅榜 TOP 5</span>
               </div>
             </template>
             <div class="rank-list">
@@ -116,6 +135,7 @@
                 v-for="(item, idx) in fallingGenres"
                 :key="item.name"
                 class="rank-item"
+                :class="{ 'is-focus': matchesFocus(item.name) }"
               >
                 <div class="rank-num">{{ idx + 1 }}</div>
                 <div class="rank-info">
@@ -134,10 +154,23 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRoute } from 'vue-router'
 import ChartWrapper from '@/components/charts/ChartWrapper.vue'
+import MarketSectionHeader from '@/components/market/MarketSectionHeader.vue'
 import type { EChartsOption } from 'echarts'
 
 const timeRange = ref('30')
+const route = useRoute()
+const focusGenre = computed(() => typeof route.query.genre === 'string' ? route.query.genre : '')
+const focusGenreRoot = computed(() => focusGenre.value.split(/[\/·]/)[0]?.trim() || '')
+const fromDashboard = computed(() => route.query.from === 'dashboard')
+const backTarget = computed(() => fromDashboard.value ? '/dashboard' : '/market')
+const backLabel = computed(() => fromDashboard.value ? '返回创作总览' : '返回市场洞察')
+
+function matchesFocus(name: string): boolean {
+  const root = focusGenreRoot.value
+  return Boolean(root && (name.includes(root) || root.includes(name)))
+}
 
 const risingGenres = ref([
   { name: '都市签到流', platform: '番茄小说', change: 28 },
@@ -351,9 +384,62 @@ const goldenFingerOption = computed<EChartsOption>(() => ({
 }
 
 .trends-content {
-  max-width: 1400px;
+  width: min(1240px, calc(100% - 48px));
+  max-width: none;
   margin: 0 auto;
-  padding: 20px 24px 40px;
+  padding: 26px 0 48px;
+}
+
+.range-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--app-text-muted);
+  font-size: 11px;
+}
+
+.data-note {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+  padding: 16px 18px;
+  border: 1px solid rgba(14, 165, 233, 0.14);
+  border-radius: 14px;
+  background: rgba(14, 165, 233, 0.055);
+}
+
+.data-note-mark {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 11px;
+  background: #0f172a;
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+.data-note strong {
+  color: var(--app-text-primary);
+  font-size: 13px;
+}
+
+.data-note p {
+  margin: 3px 0 0;
+  color: var(--app-text-muted);
+  font-size: 11px;
+}
+
+.data-note-tags {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  flex-wrap: wrap;
 }
 
 .alert-section {
@@ -365,7 +451,7 @@ const goldenFingerOption = computed<EChartsOption>(() => ({
   align-items: center;
   gap: 14px;
   padding: 20px;
-  border-radius: 14px;
+  border-radius: 16px;
   background: var(--app-surface);
   border: 1px solid var(--app-border);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
@@ -383,7 +469,10 @@ const goldenFingerOption = computed<EChartsOption>(() => ({
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
   border-radius: 12px;
   flex-shrink: 0;
 }
@@ -415,7 +504,8 @@ const goldenFingerOption = computed<EChartsOption>(() => ({
 }
 
 .chart-card {
-  border-radius: 14px;
+  border: 1px solid var(--app-border);
+  border-radius: 18px;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
 }
 
@@ -427,7 +517,8 @@ const goldenFingerOption = computed<EChartsOption>(() => ({
 }
 
 .panel-card {
-  border-radius: 14px;
+  border: 1px solid var(--app-border);
+  border-radius: 18px;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
 }
 
@@ -454,6 +545,11 @@ const goldenFingerOption = computed<EChartsOption>(() => ({
 
 .rank-item:hover {
   background: var(--app-surface-subtle);
+}
+
+.rank-item.is-focus {
+  background: rgba(79, 70, 229, 0.08);
+  box-shadow: inset 3px 0 0 #6366f1;
 }
 
 .rank-num {
@@ -514,7 +610,17 @@ const goldenFingerOption = computed<EChartsOption>(() => ({
 
 @media (max-width: 768px) {
   .trends-content {
-    padding: 16px;
+    width: min(100% - 28px, 1240px);
+    padding: 18px 0 36px;
+  }
+
+  .data-note {
+    grid-template-columns: auto 1fr;
+  }
+
+  .data-note-tags {
+    grid-column: 1 / -1;
+    justify-self: start;
   }
 
   .header-inner {

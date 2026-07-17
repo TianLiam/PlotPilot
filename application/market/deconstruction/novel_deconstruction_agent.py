@@ -141,7 +141,8 @@ DECONSTRUCTION_SYSTEM_PROMPT = """你是一位顶级的网文拆解分析师，�
 2. 每章都要有分析，不要遗漏
 3. 数据要准确，基于文本内容
 4. 评分要客观，不要全部给满分
-5. 如果信息不足，标记为"未明确""""
+5. 如果信息不足，标记为"未明确"
+"""
 
 
 class NovelDeconstructionAgent:
@@ -168,31 +169,25 @@ class NovelDeconstructionAgent:
         """
         deconstruction_id = f"decon-{uuid.uuid4().hex[:12]}"
         
-        # 截取前max_chapters章的内容
         chapters = self._split_into_chapters(novel_text)
         analyzed_chapters = min(len(chapters), max_chapters)
         
-        # 合并文本用于分析
         analysis_text = self._prepare_analysis_text(chapters[:analyzed_chapters])
         
-        # 构建提示词
         prompt = self._build_prompt(
             analysis_text,
             novel_info,
             analyzed_chapters,
         )
         
-        # 调用LLM
         response = await self.llm_client.generate(
             prompt,
             max_tokens=8000,
             temperature=0.3,
         )
         
-        # 解析结果
         result = self._parse_response(response)
         
-        # 构建实体
         return self._build_deconstruction(
             deconstruction_id=deconstruction_id,
             novel_info=novel_info,
@@ -205,11 +200,10 @@ class NovelDeconstructionAgent:
         """将小说文本分割为章节"""
         import re
         
-        # 尝试多种章节分隔模式
         patterns = [
-            r'## 第[一二三四五六七八九十\d]+章',  # Markdown格式
-            r'第[一二三四五六七八九十\d]+章',       # 纯中文格式
-            r'Chapter \d+',                         # 英文格式
+            r'## 第[一二三四五六七八九十\d]+章',
+            r'第[一二三四五六七八九十\d]+章',
+            r'Chapter \d+',
         ]
         
         for pattern in patterns:
@@ -217,17 +211,15 @@ class NovelDeconstructionAgent:
             if len(splits) > 2:
                 return [s.strip() for s in splits if s.strip()]
         
-        # 如果无法分割，按固定字数分段
         chunk_size = 2000
         return [novel_text[i:i+chunk_size] for i in range(0, len(novel_text), chunk_size)]
     
     def _prepare_analysis_text(self, chapters: list) -> str:
         """准备分析文本（限制长度）"""
-        max_chars = 15000  # 限制输入长度
+        max_chars = 15000
         text = "\n\n".join(chapters)
         
         if len(text) > max_chars:
-            # 保留开头和结尾，中间摘要
             head = text[:max_chars // 3]
             tail = text[-max_chars // 3:]
             text = f"{head}\n\n...[中间章节省略]...\n\n{tail}"
@@ -271,9 +263,7 @@ class NovelDeconstructionAgent:
             
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse JSON: {e}")
-            # 尝试修复不完整的JSON
             try:
-                # 找到最后一个完整的对象
                 last_brace = response.rfind("}")
                 if last_brace > 0:
                     fixed = response[:last_brace+1]
@@ -292,7 +282,6 @@ class NovelDeconstructionAgent:
     ) -> NovelDeconstruction:
         """从解析结果构建拆书实体"""
         
-        # 章节节拍
         chapter_beats = []
         for cb in result.get("chapter_beats", []):
             chapter_beats.append(ChapterBeat(
@@ -315,7 +304,6 @@ class NovelDeconstructionAgent:
                 hook_type=cb.get("hook_type", ""),
             ))
         
-        # 人物模型
         characters = []
         for ch in result.get("characters", []):
             characters.append(CharacterModel(
@@ -333,7 +321,6 @@ class NovelDeconstructionAgent:
                 key_moments=ch.get("key_moments", []),
             ))
         
-        # 剧情结构
         plot_structure = []
         for ps in result.get("plot_structure", []):
             plot_structure.append(PlotStructure(
@@ -345,7 +332,6 @@ class NovelDeconstructionAgent:
                 turning_points=ps.get("turning_points", []),
             ))
         
-        # 金手指
         golden_fingers = []
         for gf in result.get("golden_fingers", []):
             golden_fingers.append(GoldenFingerAnalysis(
@@ -362,7 +348,6 @@ class NovelDeconstructionAgent:
                 cool_point_enabler=gf.get("cool_point_enabler", False),
             ))
         
-        # 爽点分布
         cool_points = []
         for cp in result.get("cool_points", []):
             cool_points.append(CoolPointDistribution(
@@ -374,7 +359,6 @@ class NovelDeconstructionAgent:
                 description=cp.get("description", ""),
             ))
         
-        # 冲突设计
         conflicts = []
         for cf in result.get("conflicts", []):
             conflicts.append(ConflictDesign(
@@ -386,7 +370,6 @@ class NovelDeconstructionAgent:
                 intensity_curve=cf.get("intensity_curve", []),
             ))
         
-        # 爆款DNA
         dna_data = result.get("dna", {})
         dna = BestsellerDNA(
             dna_id=f"dna-{uuid.uuid4().hex[:12]}",
@@ -407,7 +390,6 @@ class NovelDeconstructionAgent:
             confidence=0.8,
         ) if dna_data else None
         
-        # 计算总字数
         total_word_count = sum(len(c) for c in chapters)
         
         return NovelDeconstruction(

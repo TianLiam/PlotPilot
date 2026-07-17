@@ -24,9 +24,10 @@
             </template>
           </n-button>
           <div class="header-content">
-            <h1 class="title">墨枢 · 长篇叙事工作台</h1>
+            <span class="page-eyebrow">Create a narrative project</span>
+            <h1 class="title">建立新的叙事工程</h1>
             <p class="subtitle">
-              以梗概与类型开局，选定目标篇幅；宏观结构、幕次与节拍由后台自动编排，你专注把故事写下去即可。
+              先确定故事核心和题材方向；角色、世界、结构与章节计划会在后续流程中逐步展开。
             </p>
           </div>
         </header>
@@ -36,14 +37,14 @@
           <n-space vertical :size="20">
             <div class="create-header">
               <div class="create-title-wrap">
-                <span class="create-icon">✨</span>
-                <h3 class="create-title">新建书目</h3>
+                <span class="create-icon">01</span>
+                <h3 class="create-title">从故事核心开始</h3>
               </div>
               <n-button text type="primary" @click="showAdvanced = !showAdvanced">
                 <template #icon>
                   <n-icon><component :is="showAdvanced ? IconChevronUp : IconChevronDown" /></n-icon>
                 </template>
-                {{ showAdvanced ? '收起高级' : '高级（自定义章数/每章字数）' }}
+                {{ showAdvanced ? '收起高级参数' : '高级参数' }}
               </n-button>
             </div>
 
@@ -179,15 +180,15 @@
           <!-- Empty State -->
           <div v-else-if="books.length === 0" class="empty-state">
             <div class="empty-illustration">
-              <span class="empty-icon">📚</span>
+              <span class="empty-icon">墨</span>
             </div>
-            <h3 class="empty-title">还没有书目</h3>
-            <p class="empty-desc">在上方输入你的故事创意，开启创作之旅</p>
+            <h3 class="empty-title">还没有作品</h3>
+            <p class="empty-desc">在上方写下故事核心，建立第一部叙事工程。</p>
             <n-button type="primary" size="large" round @click="focusCreateInput">
               <template #icon>
                 <n-icon><IconSpark /></n-icon>
               </template>
-              创建第一本书
+              创建第一部作品
             </n-button>
           </div>
 
@@ -1351,5 +1352,73 @@ onMounted(() => {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 12px;
+}
+
+/* Keep the creation surface aligned with the main editorial workspace. */
+.container {
+  max-width: 1240px;
+}
+
+.header {
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.header-content {
+  padding: 0 52px 0 0;
+}
+
+.page-eyebrow {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--color-brand);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin-bottom: 8px;
+  font-family: var(--font-serif);
+  font-size: clamp(30px, 4vw, 42px);
+  font-weight: 680;
+  letter-spacing: -0.035em;
+}
+
+.subtitle {
+  max-width: 720px;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.create-card,
+.books-section {
+  border: 1px solid var(--app-border);
+  border-radius: 20px;
+  box-shadow: var(--app-shadow-sm);
+}
+
+.create-icon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  color: var(--color-brand);
+  background: var(--color-brand-light);
+  border: 1px solid var(--color-brand-border);
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+}
+
+.empty-illustration {
+  border: 1px solid var(--color-brand-border);
+}
+
+.empty-icon {
+  color: var(--color-brand);
+  font-family: var(--font-serif);
+  font-size: 24px;
 }
 </style>

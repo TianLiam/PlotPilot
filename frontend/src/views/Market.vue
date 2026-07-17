@@ -1,39 +1,50 @@
 <template>
   <div class="market-page">
-    <div class="market-header">
-      <div class="header-inner">
-        <div class="header-left">
-          <h1 class="page-title">市场洞察</h1>
-          <p class="page-subtitle">用数据找到下一个爆款</p>
-        </div>
-        <div class="header-right">
-          <n-button type="primary" size="medium" @click="handleCrawlRankings">
-            <template #icon>
-              <n-icon><IconRefresh /></n-icon>
-            </template>
-            刷新榜单
-          </n-button>
-        </div>
-      </div>
-
-      <div class="sub-nav">
-        <router-link
-          v-for="item in subNavItems"
-          :key="item.path"
-          :to="item.path"
-          class="sub-nav-item"
-          active-class="is-active"
+    <MarketSectionHeader
+      title="题材发现"
+      subtitle="从实时榜单提炼热门题材、金手指、人物原型与爽点结构，再沉淀为可复用的创作模板。"
+      back-to="/dashboard"
+      back-label="返回创作总览"
+    >
+      <template #actions>
+        <n-button
+          secondary
+          type="primary"
+          size="medium"
+          :loading="crawlLoading"
+          @click="handleCrawlRankings"
         >
-          <span class="sub-nav-icon">{{ item.icon }}</span>
-          <span class="sub-nav-label">{{ item.label }}</span>
-          <span v-if="item.badge" class="sub-nav-badge">{{ item.badge }}</span>
-        </router-link>
-      </div>
-    </div>
+          刷新榜单并提炼
+        </n-button>
+      </template>
+    </MarketSectionHeader>
 
     <n-space vertical :size="24" class="market-content">
-      <n-tabs v-model:value="activeTab" class="market-tabs">
-        <n-tab-pane name="trends" tab="📈 题材趋势">
+      <section class="discovery-pipeline">
+        <div class="pipeline-copy">
+          <span class="pipeline-eyebrow">AUTOMATED DISCOVERY</span>
+          <h2>热门榜单不是终点，它应该自动变成模板。</h2>
+          <p>系统会抓取热门作品的免费章节，经 AI 识别共性结构后写入动态模板库；内置模板只作为无网络时的创作基线。</p>
+        </div>
+        <div class="pipeline-steps" aria-label="模板提炼流程">
+          <div><span>01</span><strong>采集榜单</strong><small>平台热度与排名</small></div>
+          <i>→</i>
+          <div><span>02</span><strong>结构提炼</strong><small>正文样本与模式识别</small></div>
+          <i>→</i>
+          <div><span>03</span><strong>进入模板库</strong><small>{{ discoveredTemplateCount }} 个动态模板</small></div>
+        </div>
+        <n-button
+          type="primary"
+          secondary
+          :loading="discoveryLoading"
+          @click="handleDiscoverTemplates"
+        >
+          立即自动提炼
+        </n-button>
+      </section>
+
+      <n-tabs v-model:value="activeTab" type="segment" animated class="market-tabs">
+        <n-tab-pane name="trends" tab="热门题材">
           <n-card :bordered="false" class="trends-card">
             <div class="trends-header">
               <h3>热门题材推荐</h3>
@@ -54,7 +65,7 @@
                   </n-tag>
                 </div>
                 <div class="trend-score">
-                  <span class="score-value">{{ (item.score * 100).toFixed(0) }}</span>
+                  <span class="score-value">{{ formatHeatScore(item.score) }}</span>
                   <span class="score-unit">热度分</span>
                 </div>
                 <div class="trend-topics">
@@ -78,218 +89,60 @@
           </n-card>
         </n-tab-pane>
 
-        <n-tab-pane name="golden-fingers" tab="✨ 金手指模板">
-          <n-card :bordered="false" class="templates-card">
-            <div class="templates-header">
-              <h3>金手指模板</h3>
-              <n-space :size="8">
-                <n-select
-                  v-model:value="selectedGoldenFingerGenre"
-                  placeholder="选择题材"
-                  size="small"
-                  class="genre-select"
-                >
-                  <n-option value="" label="全部" />
-                  <n-option value="都市" label="都市" />
-                  <n-option value="玄幻" label="玄幻" />
-                  <n-option value="科幻" label="科幻" />
-                </n-select>
-                <n-button size="small" @click="loadGoldenFingers">
-                  <template #icon>
-                    <n-icon><IconRefresh /></n-icon>
-                  </template>
-                  刷新
-                </n-button>
-              </n-space>
-            </div>
-            <n-grid :cols="2" :x-gap="16" :y-gap="16">
-              <n-card
-                v-for="template in goldenFingers"
-                :key="template.id"
-                :bordered="false"
-                class="template-card"
-                hoverable
-              >
-                <div class="template-header">
-                  <span class="template-name">{{ template.name }}</span>
-                  <n-tag size="small" borderable>{{ template.genre }}</n-tag>
-                </div>
-                <p class="template-desc">{{ template.description }}</p>
-                <div class="template-footer">
-                  <n-space :size="16">
-                    <span class="template-meta">
-                      <n-icon><IconStar /></n-icon>
-                      {{ template.popularity }}
-                    </span>
-                    <span class="template-meta">
-                      <n-icon><IconUsers /></n-icon>
-                      {{ template.usage_count }} 次使用
-                    </span>
-                  </n-space>
-                  <n-button size="small" type="primary" @click="useTemplate(template)">
-                    使用模板
-                  </n-button>
-                </div>
-              </n-card>
-            </n-grid>
-          </n-card>
+        <n-tab-pane name="golden-fingers" tab="金手指模板">
+          <TemplateCollectionPanel
+            v-model="selectedGoldenFingerGenre"
+            title="金手指模板"
+            description="从热门作品中识别系统机制、能力边界与成长回路。"
+            :templates="goldenFingers"
+            :genre-options="genreOptions"
+            :loading="templateLoading.goldenFinger"
+            @reload="loadGoldenFingers"
+            @use="useTemplate"
+            @discover="handleDiscoverTemplates"
+          />
         </n-tab-pane>
 
-        <n-tab-pane name="characters" tab="🧑 人物模板">
-          <n-card :bordered="false" class="templates-card">
-            <div class="templates-header">
-              <h3>人物模板</h3>
-              <n-space :size="8">
-                <n-select
-                  v-model:value="selectedCharacterGenre"
-                  placeholder="选择题材"
-                  size="small"
-                  class="genre-select"
-                >
-                  <n-option value="" label="全部" />
-                  <n-option value="都市" label="都市" />
-                  <n-option value="玄幻" label="玄幻" />
-                </n-select>
-                <n-button size="small" @click="loadCharacters">
-                  <template #icon>
-                    <n-icon><IconRefresh /></n-icon>
-                  </template>
-                  刷新
-                </n-button>
-              </n-space>
-            </div>
-            <n-grid :cols="2" :x-gap="16" :y-gap="16">
-              <n-card
-                v-for="template in characters"
-                :key="template.id"
-                :bordered="false"
-                class="template-card"
-                hoverable
-              >
-                <div class="template-header">
-                  <span class="template-name">{{ template.name }}</span>
-                  <n-tag size="small" borderable>{{ template.genre }}</n-tag>
-                </div>
-                <p class="template-desc">{{ template.description }}</p>
-                <div class="template-footer">
-                  <n-space :size="16">
-                    <span class="template-meta">
-                      <n-icon><IconStar /></n-icon>
-                      {{ template.popularity }}
-                    </span>
-                    <span class="template-meta">
-                      <n-icon><IconUsers /></n-icon>
-                      {{ template.usage_count }} 次使用
-                    </span>
-                  </n-space>
-                  <n-button size="small" type="primary" @click="useTemplate(template)">
-                    使用模板
-                  </n-button>
-                </div>
-              </n-card>
-            </n-grid>
-          </n-card>
+        <n-tab-pane name="characters" tab="人物模板">
+          <TemplateCollectionPanel
+            v-model="selectedCharacterGenre"
+            title="人物模板"
+            description="提炼人物动机、关系张力与可持续成长弧线。"
+            :templates="characters"
+            :genre-options="genreOptions"
+            :loading="templateLoading.character"
+            @reload="loadCharacters"
+            @use="useTemplate"
+            @discover="handleDiscoverTemplates"
+          />
         </n-tab-pane>
 
-        <n-tab-pane name="worldviews" tab="🌍 世界观模板">
-          <n-card :bordered="false" class="templates-card">
-            <div class="templates-header">
-              <h3>世界观模板</h3>
-              <n-space :size="8">
-                <n-select
-                  v-model:value="selectedWorldviewGenre"
-                  placeholder="选择题材"
-                  size="small"
-                  class="genre-select"
-                >
-                  <n-option value="" label="全部" />
-                  <n-option value="都市" label="都市" />
-                  <n-option value="玄幻" label="玄幻" />
-                  <n-option value="科幻" label="科幻" />
-                </n-select>
-                <n-button size="small" @click="loadWorldviews">
-                  <template #icon>
-                    <n-icon><IconRefresh /></n-icon>
-                  </template>
-                  刷新
-                </n-button>
-              </n-space>
-            </div>
-            <n-grid :cols="2" :x-gap="16" :y-gap="16">
-              <n-card
-                v-for="template in worldviews"
-                :key="template.id"
-                :bordered="false"
-                class="template-card"
-                hoverable
-              >
-                <div class="template-header">
-                  <span class="template-name">{{ template.name }}</span>
-                  <n-tag size="small" borderable>{{ template.genre }}</n-tag>
-                </div>
-                <p class="template-desc">{{ template.description }}</p>
-                <div class="template-footer">
-                  <n-space :size="16">
-                    <span class="template-meta">
-                      <n-icon><IconStar /></n-icon>
-                      {{ template.popularity }}
-                    </span>
-                    <span class="template-meta">
-                      <n-icon><IconUsers /></n-icon>
-                      {{ template.usage_count }} 次使用
-                    </span>
-                  </n-space>
-                  <n-button size="small" type="primary" @click="useTemplate(template)">
-                    使用模板
-                  </n-button>
-                </div>
-              </n-card>
-            </n-grid>
-          </n-card>
+        <n-tab-pane name="worldviews" tab="世界观模板">
+          <TemplateCollectionPanel
+            v-model="selectedWorldviewGenre"
+            title="世界观模板"
+            description="归纳力量体系、社会结构与长期冲突的承载方式。"
+            :templates="worldviews"
+            :genre-options="genreOptions"
+            :loading="templateLoading.worldview"
+            @reload="loadWorldviews"
+            @use="useTemplate"
+            @discover="handleDiscoverTemplates"
+          />
         </n-tab-pane>
 
-        <n-tab-pane name="cool-points" tab="🔥 爽点模板">
-          <n-card :bordered="false" class="templates-card">
-            <div class="templates-header">
-              <h3>爽点模板</h3>
-              <n-button size="small" @click="loadCoolPoints">
-                <template #icon>
-                  <n-icon><IconRefresh /></n-icon>
-                </template>
-                刷新
-              </n-button>
-            </div>
-            <n-grid :cols="2" :x-gap="16" :y-gap="16">
-              <n-card
-                v-for="template in coolPoints"
-                :key="template.id"
-                :bordered="false"
-                class="template-card"
-                hoverable
-              >
-                <div class="template-header">
-                  <span class="template-name">{{ template.name }}</span>
-                  <n-tag size="small" borderable>{{ template.genre }}</n-tag>
-                </div>
-                <p class="template-desc">{{ template.description }}</p>
-                <div class="template-footer">
-                  <n-space :size="16">
-                    <span class="template-meta">
-                      <n-icon><IconStar /></n-icon>
-                      {{ template.popularity }}
-                    </span>
-                    <span class="template-meta">
-                      <n-icon><IconUsers /></n-icon>
-                      {{ template.usage_count }} 次使用
-                    </span>
-                  </n-space>
-                  <n-button size="small" type="primary" @click="useTemplate(template)">
-                    使用模板
-                  </n-button>
-                </div>
-              </n-card>
-            </n-grid>
-          </n-card>
+        <n-tab-pane name="cool-points" tab="爽点模板">
+          <TemplateCollectionPanel
+            v-model="selectedCoolPointGenre"
+            title="爽点模板"
+            description="按题材筛选情绪蓄压、释放时机与回报强度，避免机械重复。"
+            :templates="coolPoints"
+            :genre-options="genreOptions"
+            :loading="templateLoading.coolPoint"
+            @reload="loadCoolPoints"
+            @use="useTemplate"
+            @discover="handleDiscoverTemplates"
+          />
         </n-tab-pane>
       </n-tabs>
     </n-space>
@@ -317,17 +170,22 @@
 </template>
 
 <script setup lang="ts">
-import { h, ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useMessage, NIcon } from 'naive-ui'
-import { marketApi, type Template, type GenreRecommendation } from '../api'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useMessage } from 'naive-ui'
+import MarketSectionHeader from '@/components/market/MarketSectionHeader.vue'
+import TemplateCollectionPanel from '@/components/market/TemplateCollectionPanel.vue'
+import {
+  marketApi,
+  type DiscoveredTemplate,
+  type GenreRecommendation,
+  type Template,
+} from '@/api/market'
 
-const router = useRouter()
+type TemplateKind = 'golden_finger' | 'character' | 'worldview' | 'cool_point'
+
 const nMessage = useMessage()
 
 const activeTab = ref('trends')
-const subtitle = ref('基于市场数据的智能题材推荐与模板库')
-
 const genreRecommendations = ref<GenreRecommendation[]>([])
 const goldenFingers = ref<Template[]>([])
 const characters = ref<Template[]>([])
@@ -337,181 +195,255 @@ const coolPoints = ref<Template[]>([])
 const selectedGoldenFingerGenre = ref('')
 const selectedCharacterGenre = ref('')
 const selectedWorldviewGenre = ref('')
+const selectedCoolPointGenre = ref('')
+const crawlLoading = ref(false)
+const discoveryLoading = ref(false)
+const templateLoading = reactive({
+  goldenFinger: false,
+  character: false,
+  worldview: false,
+  coolPoint: false,
+})
 
 const templateDetailVisible = ref(false)
 const selectedTemplate = ref<Template | null>(null)
 const templateDetailContent = ref('')
 
-const subNavItems = [
-  { path: '/market/trends', label: '趋势大盘', icon: '📈', badge: '' },
-  { path: '/market', label: '爆款发现', icon: '💎', badge: 'Hot' },
-  { path: '/market/research', label: '题材研究', icon: '🔬', badge: '' },
-  { path: '/market/deconstruction', label: '爆款拆书', icon: '🧬', badge: 'New' },
-]
+const allTemplates = computed(() => [
+  ...goldenFingers.value,
+  ...characters.value,
+  ...worldviews.value,
+  ...coolPoints.value,
+])
 
-const IconHome = () =>
-  h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', width: '1em', height: '1em' },
-    h('path', { fill: 'currentColor', d: 'M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z' }))
+const genreOptions = computed(() => {
+  const genres = new Set<string>(['都市', '玄幻', '科幻', '言情', '历史', '悬疑', '仙侠', '通用'])
+  genreRecommendations.value.forEach(item => item.genre && genres.add(item.genre))
+  allTemplates.value.forEach(item => item.genre && genres.add(item.genre))
+  return [
+    { label: '全部题材', value: '' },
+    ...Array.from(genres).map(genre => ({ label: genre, value: genre })),
+  ]
+})
 
-const IconRefresh = () =>
-  h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', width: '1em', height: '1em' },
-    h('path', { fill: 'currentColor', d: 'M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z' }))
+const discoveredTemplateCount = computed(() => {
+  return new Set(
+    allTemplates.value.filter(item => item.source === 'crawler').map(item => item.id),
+  ).size
+})
 
-const IconFlame = () =>
-  h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', width: '1em', height: '1em' },
-    h('path', { fill: 'currentColor', d: 'M12 23c-4.5 0-8.5-3.5-8.5-8 0-2.5 1.5-4.5 4-6 0 0-2-4 1.5-7 1.5-1.5 5 1 7 1s5.5-2.5 7-1c3.5 3 1.5 7 1.5 7 2.5 1.5 4 3.5 4 6 0 4.5-4 8-8.5 8z' }))
-
-const IconSearch = () =>
-  h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', width: '1em', height: '1em' },
-    h('path', { fill: 'currentColor', d: 'M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5z' }))
-
-const IconBook = () =>
-  h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', width: '1em', height: '1em' },
-    h('path', { fill: 'currentColor', d: 'M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z' }))
-
-const IconStar = () =>
-  h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', width: '1em', height: '1em' },
-    h('path', { fill: 'currentColor', d: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z' }))
-
-const IconUsers = () =>
-  h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', width: '1em', height: '1em' },
-    h('path', { fill: 'currentColor', d: 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z' }))
-
-const loadGenreRecommendations = async () => {
-  try {
-    const res = await marketApi.getGenreRecommendations(6)
-    genreRecommendations.value = res
-  } catch (e) {
-    console.error('Failed to load genre recommendations:', e)
+function toTemplate(item: DiscoveredTemplate): Template {
+  return {
+    id: item.id,
+    name: item.name,
+    type: item.pattern_type,
+    genre: item.genre,
+    description: item.description,
+    popularity: Math.round((item.confidence_score || 0) * 100),
+    usage_count: item.usage_count,
+    content: item.content,
+    source: 'crawler',
+    confidence_score: item.confidence_score,
+    occurrence_count: item.occurrence_count,
+    trend: item.trend,
+    tags: item.tags,
+    source_novels: item.source_novels,
   }
 }
 
-const loadGoldenFingers = async () => {
-  try {
-    const res = await marketApi.getGoldenFingers(selectedGoldenFingerGenre.value || undefined, 10)
-    goldenFingers.value = res
-  } catch (e) {
-    console.error('Failed to load golden fingers:', e)
+function mergeTemplates(builtIn: Template[], discovered: DiscoveredTemplate[]): Template[] {
+  const merged = [...discovered.map(toTemplate), ...builtIn.map(item => ({ ...item, source: 'built_in' as const }))]
+  const seen = new Set<string>()
+  return merged.filter(item => {
+    const key = `${item.type}:${item.genre}:${item.name}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+async function loadTemplateGroup(
+  kind: TemplateKind,
+  genre: string,
+  builtInLoader: () => Promise<Template[]>,
+  target: { value: Template[] },
+): Promise<void> {
+  const [builtInResult, discoveredResult] = await Promise.allSettled([
+    builtInLoader(),
+    marketApi.getDiscoveredTemplates(kind, genre || undefined, 50),
+  ])
+  const builtIn = builtInResult.status === 'fulfilled' ? builtInResult.value : []
+  const discovered = discoveredResult.status === 'fulfilled' ? discoveredResult.value : []
+  target.value = mergeTemplates(builtIn, discovered)
+  if (builtInResult.status === 'rejected' && discoveredResult.status === 'rejected') {
+    throw builtInResult.reason
   }
 }
 
-const loadCharacters = async () => {
+async function loadGenreRecommendations(): Promise<void> {
   try {
-    const res = await marketApi.getCharacters(selectedCharacterGenre.value || undefined, 10)
-    characters.value = res
-  } catch (e) {
-    console.error('Failed to load characters:', e)
+    genreRecommendations.value = await marketApi.getGenreRecommendations(8)
+  } catch (error) {
+    console.error('Failed to load genre recommendations:', error)
   }
 }
 
-const loadWorldviews = async () => {
+async function loadGoldenFingers(): Promise<void> {
+  templateLoading.goldenFinger = true
   try {
-    const res = await marketApi.getWorldviews(selectedWorldviewGenre.value || undefined, 10)
-    worldviews.value = res
-  } catch (e) {
-    console.error('Failed to load worldviews:', e)
+    await loadTemplateGroup(
+      'golden_finger',
+      selectedGoldenFingerGenre.value,
+      () => marketApi.getGoldenFingers(selectedGoldenFingerGenre.value || undefined, 30),
+      goldenFingers,
+    )
+  } catch (error) {
+    console.error('Failed to load golden finger templates:', error)
+  } finally {
+    templateLoading.goldenFinger = false
   }
 }
 
-const loadCoolPoints = async () => {
+async function loadCharacters(): Promise<void> {
+  templateLoading.character = true
   try {
-    const res = await marketApi.getCoolPoints(undefined, 10)
-    coolPoints.value = res
-  } catch (e) {
-    console.error('Failed to load cool points:', e)
+    await loadTemplateGroup(
+      'character',
+      selectedCharacterGenre.value,
+      () => marketApi.getCharacters(selectedCharacterGenre.value || undefined, 30),
+      characters,
+    )
+  } catch (error) {
+    console.error('Failed to load character templates:', error)
+  } finally {
+    templateLoading.character = false
   }
 }
 
-const goHome = () => {
-  router.push('/')
-}
-
-const goResearch = () => {
-  router.push('/research')
-}
-
-const goDeconstruction = () => {
-  router.push('/deconstruction')
-}
-
-const handleCrawlRankings = async () => {
+async function loadWorldviews(): Promise<void> {
+  templateLoading.worldview = true
   try {
-    nMessage.info('正在爬取榜单数据...')
+    await loadTemplateGroup(
+      'worldview',
+      selectedWorldviewGenre.value,
+      () => marketApi.getWorldviews(selectedWorldviewGenre.value || undefined, 30),
+      worldviews,
+    )
+  } catch (error) {
+    console.error('Failed to load worldview templates:', error)
+  } finally {
+    templateLoading.worldview = false
+  }
+}
+
+async function loadCoolPoints(): Promise<void> {
+  templateLoading.coolPoint = true
+  try {
+    await loadTemplateGroup(
+      'cool_point',
+      selectedCoolPointGenre.value,
+      () => marketApi.getCoolPoints(selectedCoolPointGenre.value || undefined, 30),
+      coolPoints,
+    )
+  } catch (error) {
+    console.error('Failed to load cool point templates:', error)
+  } finally {
+    templateLoading.coolPoint = false
+  }
+}
+
+async function loadAllTemplates(): Promise<void> {
+  await Promise.all([loadGoldenFingers(), loadCharacters(), loadWorldviews(), loadCoolPoints()])
+}
+
+async function handleDiscoverTemplates(showStartedMessage = true): Promise<void> {
+  discoveryLoading.value = true
+  try {
+    if (!genreRecommendations.value.length) await loadGenreRecommendations()
+    const categories = Array.from(new Set(genreRecommendations.value.slice(0, 4).map(item => item.genre)))
+    await marketApi.runDailyTemplateDiscovery({
+      platforms: ['fanqie'],
+      categories: categories.length ? categories : ['都市', '玄幻', '言情', '科幻'],
+      top_n: 3,
+    })
+    if (showStartedMessage) {
+      nMessage.success('已启动后台提炼；完成后刷新模板列表即可看到榜单模板')
+    }
+  } catch (error) {
+    console.error('Failed to start template discovery:', error)
+    nMessage.error('自动提炼启动失败，请检查榜单数据与模型配置')
+  } finally {
+    discoveryLoading.value = false
+  }
+}
+
+async function handleCrawlRankings(): Promise<void> {
+  crawlLoading.value = true
+  try {
+    nMessage.info('正在采集榜单并更新市场分析…')
     await marketApi.crawlRankings()
-    nMessage.info('正在生成市场分析...')
     await marketApi.generateAnalysis(7)
     await loadGenreRecommendations()
-    nMessage.success('榜单刷新成功')
-  } catch (e) {
-    console.error('Failed to crawl rankings:', e)
-    nMessage.error('榜单刷新失败')
+    await handleDiscoverTemplates(false)
+    nMessage.success('榜单已更新，热门题材模板正在后台自动提炼')
+  } catch (error) {
+    console.error('Failed to refresh market intelligence:', error)
+    nMessage.error('市场数据刷新失败')
+  } finally {
+    crawlLoading.value = false
   }
 }
 
-const handleCrawlHotTopics = async () => {
-  try {
-    nMessage.info('正在爬取热点数据...')
-    await marketApi.crawlHotTopics()
-    nMessage.info('正在生成市场分析...')
-    await marketApi.generateAnalysis(7)
-    await loadGenreRecommendations()
-    nMessage.success('热点更新成功')
-  } catch (e) {
-    console.error('Failed to crawl hot topics:', e)
-    nMessage.error('热点更新失败')
-  }
+function getTrendTagType(trend: string) {
+  if (trend === 'up') return 'success'
+  if (trend === 'down') return 'error'
+  return 'default'
 }
 
-const getTrendTagType = (trend: string) => {
-  switch (trend) {
-    case 'up':
-      return 'success'
-    case 'down':
-      return 'error'
-    default:
-      return 'default'
-  }
+function getTrendLabel(trend: string): string {
+  if (trend === 'up') return '上升'
+  if (trend === 'down') return '下降'
+  return '稳定'
 }
 
-const getTrendLabel = (trend: string) => {
-  switch (trend) {
-    case 'up':
-      return '📈 上升'
-    case 'down':
-      return '📉 下降'
-    default:
-      return '➡️ 稳定'
-  }
+function formatHeatScore(score: number): number {
+  const normalized = score <= 1 ? score * 100 : score
+  return Math.max(0, Math.min(100, Math.round(normalized)))
 }
 
-const selectGenre = (item: GenreRecommendation) => {
+function selectGenre(item: GenreRecommendation): void {
+  selectedGoldenFingerGenre.value = item.genre
+  selectedCharacterGenre.value = item.genre
+  selectedWorldviewGenre.value = item.genre
+  selectedCoolPointGenre.value = item.genre
   activeTab.value = 'golden-fingers'
 }
 
-const useTemplate = async (template: Template) => {
+async function useTemplate(template: Template): Promise<void> {
   try {
-    await marketApi.useTemplate(template.id)
-    const res = await marketApi.getTemplateDetail(template.id)
-    selectedTemplate.value = res
-    templateDetailContent.value = res.content || ''
+    if (template.source === 'crawler') {
+      await marketApi.markDiscoveredTemplateUsed(template.id)
+      selectedTemplate.value = { ...template, usage_count: template.usage_count + 1 }
+    } else {
+      await marketApi.useTemplate(template.id)
+      selectedTemplate.value = await marketApi.getTemplateDetail(template.id)
+    }
+    templateDetailContent.value = selectedTemplate.value?.content || ''
     templateDetailVisible.value = true
-    nMessage.success('模板使用成功')
-    loadGoldenFingers()
-    loadCharacters()
-    loadWorldviews()
-    loadCoolPoints()
-  } catch (e) {
-    console.error('Failed to use template:', e)
-    nMessage.error('模板使用失败')
+    nMessage.success('模板已载入')
+  } catch (error) {
+    console.error('Failed to use template:', error)
+    nMessage.error('模板载入失败')
   }
 }
 
-onMounted(() => {
-  loadGenreRecommendations()
-  loadGoldenFingers()
-  loadCharacters()
-  loadWorldviews()
-  loadCoolPoints()
+watch(selectedGoldenFingerGenre, loadGoldenFingers)
+watch(selectedCharacterGenre, loadCharacters)
+watch(selectedWorldviewGenre, loadWorldviews)
+watch(selectedCoolPointGenre, loadCoolPoints)
+
+onMounted(async () => {
+  await Promise.all([loadGenreRecommendations(), loadAllTemplates()])
 })
 </script>
 
@@ -759,5 +691,289 @@ onMounted(() => {
   font-family: monospace;
   font-size: 14px;
   line-height: 1.6;
+}
+
+/* Editorial workspace treatment shared with the creative overview. */
+.market-page {
+  min-height: 100%;
+  padding: clamp(22px, 3vw, 38px);
+  background:
+    radial-gradient(circle at 8% 0%, var(--color-brand-light), transparent 28%),
+    var(--app-page-bg);
+}
+
+.market-header {
+  max-width: 1400px;
+  margin: 0 auto 14px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+
+.header-inner {
+  align-items: flex-end;
+  padding: 4px 2px 22px;
+}
+
+.page-eyebrow {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--color-brand);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.page-title {
+  margin-bottom: 7px;
+  font-family: var(--font-serif);
+  font-size: clamp(28px, 3vw, 36px);
+  font-weight: 680;
+}
+
+.page-subtitle {
+  max-width: 580px;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.sub-nav {
+  gap: 5px;
+  padding: 5px;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: 14px;
+  box-shadow: var(--app-shadow-sm);
+}
+
+.sub-nav-item {
+  gap: 8px;
+  min-height: 38px;
+  margin: 0;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  font-size: 13px;
+}
+
+.sub-nav-item:hover {
+  background: var(--app-surface-subtle);
+}
+
+.sub-nav-item.is-active {
+  background: var(--color-brand-light);
+  border: 0;
+}
+
+.sub-nav-icon {
+  color: var(--app-text-muted);
+  font-family: var(--font-mono);
+  font-size: 9px;
+}
+
+.sub-nav-badge {
+  padding: 1px 5px;
+  color: var(--color-brand);
+  background: var(--color-brand-light);
+  border: 1px solid var(--color-brand-border);
+  border-radius: 999px;
+  font-size: 9px;
+}
+
+.market-content {
+  width: min(1240px, calc(100% - 48px));
+  max-width: none;
+  margin: 0 auto;
+  padding: 26px 0 48px;
+}
+
+.discovery-pipeline {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.15fr) minmax(460px, 1.6fr) auto;
+  align-items: center;
+  gap: 28px;
+  padding: 24px 26px;
+  border: 1px solid rgba(79, 70, 229, 0.16);
+  border-radius: 18px;
+  background:
+    linear-gradient(120deg, rgba(79, 70, 229, 0.08), transparent 45%),
+    var(--app-surface);
+}
+
+.pipeline-eyebrow {
+  color: #4f46e5;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.pipeline-copy h2 {
+  margin: 7px 0 6px;
+  color: var(--app-text-primary);
+  font-family: var(--font-serif);
+  font-size: 17px;
+}
+
+.pipeline-copy p {
+  margin: 0;
+  color: var(--app-text-muted);
+  font-size: 11px;
+  line-height: 1.65;
+}
+
+.pipeline-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.pipeline-steps div {
+  display: flex;
+  min-width: 110px;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pipeline-steps span {
+  color: #818cf8;
+  font-family: var(--font-mono);
+  font-size: 9px;
+}
+
+.pipeline-steps strong {
+  color: var(--app-text-primary);
+  font-size: 12px;
+}
+
+.pipeline-steps small,
+.pipeline-steps i {
+  color: var(--app-text-muted);
+  font-size: 10px;
+  font-style: normal;
+}
+
+.market-tabs :deep(.n-tabs-nav) {
+  max-width: 620px;
+  margin-bottom: 14px;
+}
+
+.trends-card,
+.templates-card {
+  padding: 26px;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: 18px;
+  box-shadow: var(--app-shadow-sm);
+}
+
+.trends-header,
+.templates-header {
+  margin-bottom: 22px;
+}
+
+.trends-header h3,
+.templates-header h3 {
+  color: var(--app-text-primary);
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 650;
+}
+
+.trends-hint {
+  color: var(--app-text-muted);
+  font-size: 11px;
+}
+
+.trends-grid :deep(.n-space-item) {
+  min-width: min(290px, 100%);
+  flex: 1 1 30%;
+}
+
+.trend-card,
+.template-card {
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+  background: var(--app-surface-subtle);
+  border: 1px solid transparent;
+  border-radius: 14px;
+  box-shadow: none;
+  transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+}
+
+.trend-card:hover,
+.template-card:hover {
+  background: var(--color-brand-light);
+  border-color: var(--color-brand-border);
+  box-shadow: none;
+  transform: translateY(-2px);
+}
+
+.trend-genre,
+.template-name {
+  color: var(--app-text-primary);
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 650;
+}
+
+.score-value {
+  color: var(--color-brand);
+  font-family: var(--font-mono);
+  font-size: 30px;
+}
+
+.score-unit,
+.topics-label,
+.template-desc,
+.template-meta {
+  color: var(--app-text-muted);
+}
+
+@media (max-width: 720px) {
+  .market-page {
+    padding: 0;
+  }
+
+  .market-content {
+    width: min(100% - 28px, 1240px);
+    padding: 18px 0 36px;
+  }
+
+  .discovery-pipeline {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 20px;
+  }
+
+  .pipeline-steps {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .pipeline-steps i {
+    display: none;
+  }
+
+  .header-inner {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .sub-nav {
+    overflow-x: auto;
+  }
+
+  .sub-nav-item {
+    flex: 0 0 auto;
+  }
+
+  .trends-card,
+  .templates-card {
+    padding: 18px;
+  }
 }
 </style>

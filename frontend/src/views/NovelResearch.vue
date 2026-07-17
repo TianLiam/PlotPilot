@@ -1,26 +1,42 @@
 <template>
   <div class="novel-research">
-    <n-card title="📚 创作前研究" class="research-header">
-      <template #header-extra>
+    <MarketSectionHeader
+      title="题材研究"
+      subtitle="在开书之前验证题材组合、金手指冲突与市场饱和度，把直觉变成可以复盘的决策。"
+    >
+      <template #actions>
         <n-tag :type="researchStatusType" round>
           {{ researchStatusText }}
         </n-tag>
       </template>
-      
-      <n-space vertical>
-        <n-text>
-          想知道你构思的题材+金手指组合能不能火？AI 会基于历史爆款数据生成完整的研究报告。
-        </n-text>
-        <n-text depth="3">
-          💡 例如：「末日+系统+种田」近一年成功率19%，建议采用仓库流开局，避免重生流。
-        </n-text>
-      </n-space>
-    </n-card>
+    </MarketSectionHeader>
 
-    <!-- 输入面板 -->
-    <n-card title="第一步：输入你的创意" style="margin-top: 16px">
+    <div class="research-content">
+      <section class="research-workspace">
+        <aside class="research-brief">
+          <span class="brief-index">RESEARCH / 01</span>
+          <h2>先验证组合，再投入长篇成本。</h2>
+          <p>研究报告会同时检查市场窗口、同类样本、开局结构与金手指冲突，不直接替你决定题材。</p>
+          <div class="brief-steps">
+            <div><span>01</span><strong>定义题材组合</strong><small>主赛道、金手指、目标体量</small></div>
+            <div><span>02</span><strong>先做快速预检</strong><small>查看饱和度与设定冲突</small></div>
+            <div><span>03</span><strong>生成完整研究</strong><small>形成可保存的创作依据</small></div>
+          </div>
+        </aside>
+
+        <n-card title="研究参数" class="research-form-card" :bordered="false">
       <n-form :model="formData" label-placement="top">
-        <n-grid :cols="2" :x-gap="16">
+        <n-grid cols="1 m:2" responsive="screen" :x-gap="16">
+          <n-gi>
+            <n-form-item label="目标平台">
+              <n-select
+                v-model:value="formData.platform"
+                :options="platformOptions"
+                clearable
+                placeholder="综合市场"
+              />
+            </n-form-item>
+          </n-gi>
           <n-gi>
             <n-form-item label="题材组合（可多选）">
               <n-select
@@ -93,24 +109,25 @@
             @click="conductResearch"
             :disabled="!canResearch"
           >
-            🚀 开始研究
+            生成完整研究
           </n-button>
           <n-button
             size="large"
             :loading="quickCheckLoading"
             @click="quickCheck"
           >
-            ⚡ 快速预检
+            快速预检
           </n-button>
         </n-space>
       </n-form>
-    </n-card>
+        </n-card>
+      </section>
 
     <!-- 快速预检结果 -->
     <n-card
       v-if="quickCheckResult"
       title="快速预检结果"
-      style="margin-top: 16px"
+      class="result-card"
     >
       <n-alert v-if="quickCheckResult.saturation" type="info" style="margin-bottom: 16px">
         市场饱和度：{{ quickCheckResult.saturation.message }}
@@ -119,7 +136,7 @@
 
       <n-grid v-if="quickCheckResult.conflict_check?.conflicts?.length" :cols="1">
         <n-gi>
-          <n-text strong>⚠️ 金手指冲突检测：</n-text>
+          <n-text strong>金手指冲突检测：</n-text>
           <n-list>
             <n-list-item v-for="(c, i) in quickCheckResult.conflict_check.conflicts" :key="i">
               <n-tag :type="c.severity === 'warning' ? 'warning' : 'info'">
@@ -135,8 +152,8 @@
     <!-- 完整研究报告 -->
     <n-card
       v-if="research"
-      :title="`研究报告 - ${research.research_id}`"
-      style="margin-top: 16px"
+      :title="`研究报告 · ${research.research_id}`"
+      class="result-card research-report"
     >
       <template #header-extra>
         <n-space>
@@ -150,7 +167,7 @@
       </template>
 
       <!-- 摘要 -->
-      <n-card v-if="research.ai_summary" type="inner" title="📝 AI 综合评估" class="section">
+      <n-card v-if="research.ai_summary" type="inner" title="综合评估" class="section">
         <p style="white-space: pre-wrap">{{ research.ai_summary }}</p>
       </n-card>
 
@@ -158,7 +175,7 @@
       <n-card
         v-if="research.timing_advice"
         type="inner"
-        title="⏰ 时机分析"
+        title="时机分析"
         class="section"
       >
         <n-space vertical>
@@ -175,7 +192,7 @@
       <n-card
         v-if="research.genre_stats?.length"
         type="inner"
-        title="📊 题材数据统计"
+        title="题材数据统计"
         class="section"
       >
         <n-grid :cols="2" :x-gap="16">
@@ -220,7 +237,7 @@
       <n-card
         v-if="research.opening_patterns?.length"
         type="inner"
-        title="🎯 成功开局模式"
+        title="成功开局模式"
         class="section"
       >
         <n-list>
@@ -261,7 +278,7 @@
       <n-card
         v-if="research.recommendations?.length"
         type="inner"
-        title="💡 建议清单"
+        title="建议清单"
         class="section"
       >
         <n-list>
@@ -285,7 +302,7 @@
       <n-card
         v-if="research.ai_warnings"
         type="inner"
-        title="⚠️ 风险警告"
+        title="风险警告"
         class="section"
       >
         <n-alert type="warning" :show-icon="false">
@@ -297,12 +314,13 @@
       <n-card
         v-if="research.ai_suggestions"
         type="inner"
-        title="🏆 竞品分析"
+        title="竞品分析"
         class="section"
       >
         <p style="white-space: pre-wrap">{{ research.ai_suggestions }}</p>
       </n-card>
-    </n-card>
+      </n-card>
+    </div>
   </div>
 </template>
 
@@ -310,8 +328,15 @@
 import { ref, computed, onMounted } from 'vue'
 import { useMessage } from 'naive-ui'
 import { marketApi } from '@/api/market'
+import MarketSectionHeader from '@/components/market/MarketSectionHeader.vue'
 
 const message = useMessage()
+
+const platformOptions = [
+  { label: '番茄小说', value: 'fanqie' },
+  { label: '起点中文网', value: 'qidian' },
+  { label: '七猫小说', value: 'qimao' },
+]
 
 // 表单数据
 const formData = ref({
@@ -453,7 +478,7 @@ function getTrendType(trend) {
 }
 
 function getTrendLabel(trend) {
-  const map = { rising: '📈 上升', stable: '➡️ 平稳', declining: '📉 下降' }
+  const map = { rising: '上升', stable: '平稳', declining: '下降' }
   return map[trend] || trend
 }
 
@@ -492,18 +517,145 @@ function getTimingStatus(score) {
 
 <style scoped>
 .novel-research {
-  padding: 16px;
+  min-height: calc(100vh - 60px);
+  background: var(--app-page-bg);
 }
 
-.research-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.research-content {
+  width: min(1240px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 26px 0 52px;
 }
 
-.research-header :deep(.n-card-header__main) {
-  color: white;
+.research-workspace {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.78fr) minmax(0, 1.7fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.research-brief {
+  display: flex;
+  flex-direction: column;
+  padding: clamp(24px, 3vw, 34px);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 100% 0, rgba(99, 102, 241, 0.34), transparent 38%),
+    #111827;
+  color: #fff;
+}
+
+.brief-index {
+  color: #a5b4fc;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.research-brief h2 {
+  margin: 18px 0 10px;
+  color: #fff;
+  font-family: var(--font-serif);
+  font-size: clamp(23px, 2.7vw, 34px);
+  line-height: 1.25;
+}
+
+.research-brief > p {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 12px;
+  line-height: 1.75;
+}
+
+.brief-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: auto;
+  padding-top: 36px;
+}
+
+.brief-steps div {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 2px 10px;
+}
+
+.brief-steps span {
+  grid-row: 1 / 3;
+  color: #818cf8;
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.brief-steps strong {
+  font-size: 12px;
+}
+
+.brief-steps small {
+  color: #94a3b8;
+  font-size: 10px;
+}
+
+.research-form-card,
+.result-card {
+  border: 1px solid var(--app-border);
+  border-radius: 20px;
+  background: var(--app-surface);
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.045);
+}
+
+.research-form-card :deep(.n-card-header) {
+  padding: 26px 28px 8px;
+}
+
+.research-form-card :deep(.n-card__content) {
+  padding: 18px 28px 28px;
+}
+
+.research-form-card :deep(.n-card-header__main),
+.result-card :deep(.n-card-header__main) {
+  color: var(--app-text-primary);
+  font-family: var(--font-serif);
+  font-size: 19px;
+}
+
+.result-card {
+  margin-top: 18px;
+}
+
+.research-report {
+  padding: 4px;
 }
 
 .section {
-  margin-top: 12px;
+  margin-top: 14px;
+  border: 1px solid var(--app-border);
+  border-radius: 14px;
+}
+
+@media (max-width: 860px) {
+  .research-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .brief-steps {
+    margin-top: 8px;
+    padding-top: 24px;
+  }
+}
+
+@media (max-width: 620px) {
+  .research-content {
+    width: min(100% - 28px, 1240px);
+    padding: 18px 0 36px;
+  }
+
+  .research-form-card :deep(.n-card-header),
+  .research-form-card :deep(.n-card__content) {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
 }
 </style>

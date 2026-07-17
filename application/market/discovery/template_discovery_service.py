@@ -244,7 +244,9 @@ class TemplateDiscoveryService:
         templates = []
         
         try:
-            if pattern_type:
+            if pattern_type and genre:
+                templates = await self.template_repo.search("", pattern_type, genre, limit)
+            elif pattern_type:
                 templates = await self.template_repo.list_by_type(pattern_type, limit)
             elif genre:
                 templates = await self.template_repo.list_by_genre(genre, limit)

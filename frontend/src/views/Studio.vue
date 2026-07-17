@@ -2,19 +2,30 @@
   <div class="studio-page">
     <div class="page-header">
       <div>
+        <span class="page-eyebrow">Writing workflow</span>
         <h1 class="page-title">创作工坊</h1>
-        <p class="page-subtitle">系统化地完成你的小说创作</p>
+        <p class="page-subtitle">把选题、设定、结构、写作与审校串成一条可持续推进的工作流。</p>
       </div>
     </div>
 
     <div v-if="!selectedNovel" class="select-novel">
       <div class="select-card">
-        <span class="select-icon">📖</span>
-        <h3>选择一本小说开始创作</h3>
-        <p>从书架中选择你要继续创作的小说</p>
-        <n-button type="primary" size="large" round @click="goLibrary">
-          前往书架
-        </n-button>
+        <div class="select-copy">
+          <span class="select-kicker">Start with a project</span>
+          <h2>先确定一部作品，<br>再让每一步创作都有上下文。</h2>
+          <p>创作工坊会根据作品当前阶段，组织选题研究、角色设定、世界观、节奏规划、章节写作和质量校验。</p>
+          <div class="select-actions">
+            <n-button type="primary" size="large" @click="goLibrary">从作品库选择</n-button>
+            <n-button size="large" @click="goCreate">新建作品</n-button>
+          </div>
+        </div>
+        <div class="workflow-preview" aria-label="创作流程预览">
+          <div v-for="(label, index) in workflowPreview" :key="label" class="workflow-preview-item">
+            <span class="workflow-index">{{ String(index + 1).padStart(2, '0') }}</span>
+            <strong>{{ label }}</strong>
+            <i v-if="index < workflowPreview.length - 1" />
+          </div>
+        </div>
       </div>
     </div>
 
@@ -93,7 +104,7 @@
             <n-grid :cols="3" :x-gap="16" :y-gap="16" responsive="screen">
               <n-gi v-for="tool in currentStepInfo.tools" :key="tool.name">
                 <div class="tool-card" @click="(tool as any).action ? (tool as any).action() : goWorkbench()">
-                  <div class="tool-icon">{{ tool.icon }}</div>
+                  <div class="tool-icon">{{ tool.name.slice(0, 1) }}</div>
                   <div class="tool-name">{{ tool.name }}</div>
                   <div class="tool-desc">{{ tool.desc }}</div>
                   <n-button text type="primary" size="small" class="tool-btn">
@@ -154,6 +165,7 @@ const novels = ref<any[]>([])
 const selectedNovel = ref<any>(null)
 const activeStep = ref('planning')
 const showNovelList = ref(false)
+const workflowPreview = ['选题策划', '人物设计', '世界观', '节奏规划', '章节写作', '质量检测']
 
 const roadmapSteps = [
   {
@@ -307,6 +319,10 @@ const getStageType = (stage: string) => getNovelStageTagType(stage)
 
 const goLibrary = () => {
   router.push('/library')
+}
+
+const goCreate = () => {
+  router.push('/home')
 }
 
 const goWorkbench = () => {
@@ -729,6 +745,193 @@ onMounted(() => {
 
   .step-line {
     display: none;
+  }
+}
+
+/* Match the calmer editorial language used by the overview. */
+.studio-page {
+  max-width: 1440px;
+  height: calc(100vh - 68px);
+  padding: clamp(22px, 3vw, 38px);
+  background:
+    radial-gradient(circle at 8% 0%, var(--color-brand-light), transparent 28%),
+    var(--app-page-bg);
+}
+
+.page-header {
+  margin-bottom: 24px;
+}
+
+.page-eyebrow,
+.select-kicker {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--color-brand);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.page-title {
+  margin-bottom: 7px;
+  font-family: var(--font-serif);
+  font-size: clamp(28px, 3vw, 36px);
+  font-weight: 680;
+}
+
+.page-subtitle {
+  max-width: 680px;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.select-novel {
+  align-items: flex-start;
+}
+
+.select-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  width: 100%;
+  min-height: 430px;
+  padding: 0;
+  overflow: hidden;
+  text-align: left;
+  background: var(--app-surface);
+  border-radius: 22px;
+  box-shadow: var(--app-shadow-md);
+}
+
+.select-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(34px, 5vw, 66px);
+}
+
+.select-copy h2 {
+  margin: 0;
+  color: var(--app-text-primary);
+  font-family: var(--font-serif);
+  font-size: clamp(30px, 3.5vw, 44px);
+  font-weight: 680;
+  line-height: 1.26;
+  letter-spacing: -0.035em;
+}
+
+.select-copy p {
+  max-width: 620px;
+  margin: 20px 0 0;
+  color: var(--app-text-secondary);
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.select-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.workflow-preview {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 38px;
+  color: #f7f8fc;
+  background:
+    radial-gradient(circle at 90% 10%, color-mix(in srgb, var(--color-brand) 42%, transparent), transparent 42%),
+    linear-gradient(150deg, #20283c, #111827 72%);
+}
+
+.workflow-preview-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 38px 1fr;
+  align-items: center;
+  min-height: 53px;
+  gap: 12px;
+}
+
+.workflow-preview-item i {
+  position: absolute;
+  top: 36px;
+  bottom: -17px;
+  left: 14px;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.workflow-index {
+  display: grid;
+  z-index: 1;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.68);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+}
+
+.workflow-preview-item strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.studio-sidebar,
+.studio-main {
+  border-radius: 18px;
+  box-shadow: var(--app-shadow-sm);
+}
+
+.tool-card {
+  align-items: flex-start;
+  padding: 20px;
+  text-align: left;
+}
+
+.tool-icon {
+  width: 42px;
+  height: 42px;
+  color: var(--color-brand);
+  background: var(--color-brand-light);
+  border: 1px solid var(--color-brand-border);
+  border-radius: 11px;
+  font-family: var(--font-serif);
+  font-size: 16px;
+}
+
+@media (max-width: 900px) {
+  .studio-page {
+    height: auto;
+  }
+
+  .select-card {
+    grid-template-columns: 1fr;
+  }
+
+  .workflow-preview {
+    min-height: 340px;
+  }
+}
+
+@media (max-width: 560px) {
+  .studio-page {
+    padding: 16px;
+  }
+
+  .select-copy,
+  .workflow-preview {
+    padding: 24px;
+  }
+
+  .select-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
 </style>

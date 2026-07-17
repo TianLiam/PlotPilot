@@ -4,9 +4,8 @@ from typing import Dict, Any
 from datetime import datetime
 
 from engine.pipeline.agents.base_agent import BaseAgent
-from engine.pipeline.entities.pipeline_entities import AgentType
-from infrastructure.crawler.ranking_crawler import RankingCrawler
-from infrastructure.crawler.hot_topic_crawler import HotTopicCrawler
+from engine.pipeline.entities.pipeline_entities import AgentType, PipelineContext
+from infrastructure.crawler import QidianCrawler, FanqieCrawler, QimaoCrawler, WeiboCrawler, BaiduCrawler, ZhihuCrawler
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +21,12 @@ class ScanRankingAgent(BaseAgent):
     
     def __init__(self, llm_client=None):
         super().__init__(llm_client)
-        self.ranking_crawler = RankingCrawler()
-        self.hot_topic_crawler = HotTopicCrawler()
+        self.qidian_crawler = QidianCrawler()
+        self.fanqie_crawler = FanqieCrawler()
+        self.qimao_crawler = QimaoCrawler()
+        self.weibo_crawler = WeiboCrawler()
+        self.baidu_crawler = BaiduCrawler()
+        self.zhihu_crawler = ZhihuCrawler()
     
     async def execute(self, context: PipelineContext) -> Dict[str, Any]:
         """执行扫榜"""
@@ -41,11 +44,11 @@ class ScanRankingAgent(BaseAgent):
         for platform in platforms:
             try:
                 if platform == "fanqie":
-                    data = await self.ranking_crawler.crawl_fanqie_rankings()
+                    data = await self.fanqie_crawler.crawl_all_categories(limit=20)
                 elif platform == "qidian":
-                    data = await self.ranking_crawler.crawl_qidian_rankings()
+                    data = await self.qidian_crawler.crawl_all_categories(limit=20)
                 elif platform == "qimao":
-                    data = await self.ranking_crawler.crawl_qimao_rankings()
+                    data = await self.qimao_crawler.crawl_all_categories(limit=20)
                 else:
                     continue
                 
@@ -58,7 +61,10 @@ class ScanRankingAgent(BaseAgent):
         
         # 爬取热点
         try:
-            hot_topics = await self.hot_topic_crawler.crawl_all_sources()
+            hot_topics = {}
+            hot_topics["weibo"] = await self.weibo_crawler.crawl_hot_topics(limit=10)
+            hot_topics["baidu"] = await self.baidu_crawler.crawl_hot_topics(limit=10)
+            hot_topics["zhihu"] = await self.zhihu_crawler.crawl_hot_topics(limit=10)
             result["hot_topics"] = hot_topics
             logger.info(f"Crawled hot topics from {len(hot_topics)} sources")
         except Exception as e:

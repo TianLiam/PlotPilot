@@ -1,11 +1,12 @@
 <template>
   <div class="library-page">
     <div class="page-header">
-      <div>
-        <h1 class="page-title">我的书架</h1>
-        <p class="page-subtitle">共 {{ filteredBooks.length }} 本小说</p>
+      <div class="page-heading">
+        <span class="page-eyebrow">Project library</span>
+        <h1 class="page-title">作品库</h1>
+        <p class="page-subtitle">管理长篇项目、查看创作阶段，并快速回到最近的写作现场。</p>
       </div>
-      <div class="header-actions">
+      <div v-if="books.length > 0" class="header-actions">
         <n-input
           v-model:value="searchQuery"
           placeholder="搜索书名或类型…"
@@ -26,7 +27,7 @@
       </div>
     </div>
 
-    <div class="filter-bar">
+    <div v-if="books.length > 0" class="filter-bar">
       <n-radio-group v-model:value="filterStage" size="medium">
         <n-radio-button value="all">全部</n-radio-button>
         <n-radio-button value="planning">策划中</n-radio-button>
@@ -50,22 +51,28 @@
       <p>加载中…</p>
     </div>
 
-    <div v-else-if="books.length === 0" class="empty-state">
-      <div class="empty-illustration">
-        <span class="empty-icon">📚</span>
+    <div v-else-if="books.length === 0" class="empty-state empty-library">
+      <div class="empty-copy">
+        <span class="empty-kicker">Your first narrative project</span>
+        <h2 class="empty-title">作品库还没有内容，<br>先建立第一部叙事工程。</h2>
+        <p class="empty-desc">只需要一个故事核心和题材方向。角色、世界观、结构与章节计划可以在后续流程中逐步完善。</p>
+        <n-button type="primary" size="large" @click="goCreate">
+          <template #icon>
+            <n-icon><IconPlus /></n-icon>
+          </template>
+          新建第一部作品
+        </n-button>
       </div>
-      <h3 class="empty-title">书架空空如也</h3>
-      <p class="empty-desc">创建你的第一本小说，开启创作之旅</p>
-      <n-button type="primary" size="large" round @click="goCreate">
-        <template #icon>
-          <n-icon><IconPlus /></n-icon>
-        </template>
-        立即创建
-      </n-button>
+      <div class="empty-roadmap" aria-label="作品建立流程">
+        <div v-for="(step, index) in libraryOnboardingSteps" :key="step.title" class="empty-roadmap-item">
+          <span>{{ String(index + 1).padStart(2, '0') }}</span>
+          <div><strong>{{ step.title }}</strong><small>{{ step.desc }}</small></div>
+        </div>
+      </div>
     </div>
 
     <div v-else-if="filteredBooks.length === 0" class="empty-state">
-      <span class="empty-icon">🔍</span>
+      <n-icon :component="IconSearch" :size="34" />
       <p>没有找到匹配的小说</p>
       <n-button text type="primary" @click="clearFilter">清除筛选</n-button>
     </div>
@@ -75,7 +82,10 @@
         v-for="book in filteredBooks"
         :key="book.slug"
         class="book-card"
+        role="button"
+        tabindex="0"
         @click="openBook(book.slug)"
+        @keydown.enter="openBook(book.slug)"
       >
         <div class="book-cover" :class="`cover-${book.stage}`">
           <span class="cover-text">{{ book.title.charAt(0) }}</span>
@@ -161,6 +171,12 @@ const sortOptions = [
   { label: '创建时间', value: 'created' },
   { label: '字数最多', value: 'words' },
   { label: '章节最多', value: 'chapters' },
+]
+
+const libraryOnboardingSteps = [
+  { title: '故事核心', desc: '一句话梗概与题材方向' },
+  { title: '叙事骨架', desc: '角色、世界观与结构规划' },
+  { title: '持续创作', desc: '章节推进与一致性校验' },
 ]
 
 const filteredBooks = computed(() => {
@@ -499,6 +515,172 @@ onMounted(() => {
 
   .books-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Editorial project library */
+.library-page {
+  max-width: 1440px;
+  min-height: 100%;
+  padding: clamp(22px, 3vw, 38px);
+  background:
+    radial-gradient(circle at 8% 0%, var(--color-brand-light), transparent 28%),
+    var(--app-page-bg);
+}
+
+.page-header {
+  align-items: flex-end;
+  margin-bottom: 24px;
+}
+
+.page-heading {
+  max-width: 680px;
+}
+
+.page-eyebrow,
+.empty-kicker {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--color-brand);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.page-title {
+  margin-bottom: 7px;
+  font-family: var(--font-serif);
+  font-size: clamp(28px, 3vw, 36px);
+  font-weight: 680;
+}
+
+.page-subtitle {
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.filter-bar {
+  padding: 7px 10px;
+  border-radius: 14px;
+  box-shadow: var(--app-shadow-sm);
+}
+
+.empty-library {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  min-height: 430px;
+  padding: 0;
+  overflow: hidden;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: 22px;
+  box-shadow: var(--app-shadow-md);
+}
+
+.empty-copy {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(34px, 5vw, 66px);
+}
+
+.empty-copy .empty-title {
+  color: var(--app-text-primary);
+  font-family: var(--font-serif);
+  font-size: clamp(30px, 3.5vw, 44px);
+  font-weight: 680;
+  line-height: 1.26;
+  letter-spacing: -0.035em;
+  text-align: left;
+}
+
+.empty-copy .empty-desc {
+  max-width: 620px;
+  margin: 18px 0 26px;
+  color: var(--app-text-secondary);
+  font-size: 13px;
+  line-height: 1.8;
+  text-align: left;
+}
+
+.empty-roadmap {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-self: stretch;
+  width: 100%;
+  padding: 42px;
+  color: #f7f8fc;
+  background:
+    radial-gradient(circle at 90% 10%, color-mix(in srgb, var(--color-brand) 42%, transparent), transparent 42%),
+    linear-gradient(150deg, #20283c, #111827 72%);
+}
+
+.empty-roadmap-item {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  align-items: center;
+  min-height: 76px;
+  gap: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.empty-roadmap-item:last-child {
+  border-bottom: 0;
+}
+
+.empty-roadmap-item > span {
+  color: rgba(255, 255, 255, 0.46);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.empty-roadmap-item div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.empty-roadmap-item strong {
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.empty-roadmap-item small {
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 10px;
+}
+
+.book-card {
+  border-radius: 18px;
+  box-shadow: var(--app-shadow-sm);
+}
+
+.book-card:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 3px;
+}
+
+@media (max-width: 820px) {
+  .empty-library {
+    grid-template-columns: 1fr;
+  }
+
+  .empty-roadmap {
+    min-height: 280px;
+  }
+}
+
+@media (max-width: 560px) {
+  .library-page {
+    padding: 16px;
+  }
+
+  .empty-copy,
+  .empty-roadmap {
+    padding: 24px;
   }
 }
 </style>
