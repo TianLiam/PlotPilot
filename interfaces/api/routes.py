@@ -101,6 +101,7 @@ def register_api_routes(app: FastAPI) -> None:
         recommender_router,
         template_router,
     )
+    from interfaces.api.v1.market.discovery_routes import router as discovery_router
 
     _include_registered_routes(
         app,
@@ -156,6 +157,7 @@ def register_api_routes(app: FastAPI) -> None:
             RouterRegistration(analyzer_router, API_V1_PREFIX, ("market-analyzer",)),
             RouterRegistration(recommender_router, API_V1_PREFIX, ("market-recommender",)),
             RouterRegistration(template_router, API_V1_PREFIX, ("market-templates",)),
+            RouterRegistration(discovery_router, API_V1_PREFIX, ("market-discovery",)),
         ),
     )
 
