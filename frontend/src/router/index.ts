@@ -11,6 +11,7 @@ const CharacterGraph = () => import('../views/CharacterGraph.vue')
 const LocationGraph = () => import('../views/LocationGraph.vue')
 
 const Market = () => import('../views/Market.vue')
+const TrendsDashboard = () => import('../views/TrendsDashboard.vue')
 const NovelResearch = () => import('../views/NovelResearch.vue')
 const Deconstruction = () => import('../views/Deconstruction.vue')
 
@@ -43,7 +44,7 @@ const router = createRouter({
         {
           path: 'market/trends',
           name: 'MarketTrends',
-          component: Market,
+          component: TrendsDashboard,
           meta: { title: '市场洞察 · 趋势大盘' },
         },
         {

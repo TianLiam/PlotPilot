@@ -89,13 +89,19 @@
             {{ currentStepInfo.todo }}
           </n-alert>
 
-          <div class="step-placeholder">
-            <span class="placeholder-icon">{{ currentStepInfo.icon }}</span>
-            <h3>{{ currentStepInfo.title }}</h3>
-            <p>{{ currentStepInfo.placeholder }}</p>
-            <n-button type="primary" size="large" round @click="goWorkbench">
-              进入工作台
-            </n-button>
+          <div class="step-tools">
+            <n-grid :cols="3" :x-gap="16" :y-gap="16" responsive="screen">
+              <n-gi v-for="tool in currentStepInfo.tools" :key="tool.name">
+                <div class="tool-card" @click="tool.action ? tool.action() : goWorkbench()">
+                  <div class="tool-icon">{{ tool.icon }}</div>
+                  <div class="tool-name">{{ tool.name }}</div>
+                  <div class="tool-desc">{{ tool.desc }}</div>
+                  <n-button text type="primary" size="small" class="tool-btn">
+                    {{ tool.actionLabel || '进入' }} →
+                  </n-button>
+                </div>
+              </n-gi>
+            </n-grid>
           </div>
         </div>
       </div>
@@ -150,12 +156,62 @@ const activeStep = ref('planning')
 const showNovelList = ref(false)
 
 const roadmapSteps = [
-  { key: 'planning', title: '选题策划', desc: '确定题材与金手指', status: 'done', icon: '💡', todo: '完成题材研究，确定核心梗和金手指设计', placeholder: '从市场研究开始，找到属于你的爆款选题' },
-  { key: 'character', title: '人物设计', desc: '主角团与反派设定', status: 'current', icon: '👤', todo: '设计主角、配角、反派的人物档案和关系网', placeholder: '设计立体的人物，让故事活起来' },
-  { key: 'worldview', title: '世界观', desc: '设定与规则体系', status: 'pending', icon: '🌍', todo: '构建完整的世界观设定和力量体系', placeholder: '构建独特的世界观，奠定故事基石' },
-  { key: 'pacing', title: '节奏规划', desc: '大纲与节拍表', status: 'pending', icon: '📊', todo: '制定全书大纲、幕次结构和章节节拍', placeholder: '精心设计节奏，让读者欲罢不能' },
-  { key: 'writing', title: '章节写作', desc: '正文创作', status: 'pending', icon: '✍️', todo: '按节奏规划逐章创作正文内容', placeholder: '开始写作，让故事绽放' },
-  { key: 'quality', title: '质量检测', desc: '审校与优化', status: 'pending', icon: '✅', todo: '检查行文质量、一致性和AI痕迹', placeholder: '精雕细琢，打造精品' },
+  {
+    key: 'planning', title: '选题策划', desc: '确定题材与金手指', status: 'done', icon: '💡',
+    todo: '完成题材研究，确定核心梗和金手指设计',
+    tools: [
+      { name: '题材研究', desc: '分析题材成功率与趋势', icon: '🔬', actionLabel: '去研究', action: () => router.push('/market/research') },
+      { name: '趋势大盘', desc: '查看市场热门趋势', icon: '📈', actionLabel: '去查看', action: () => router.push('/market/trends') },
+      { name: '爆款拆书', desc: '拆解热门小说套路', icon: '🧬', actionLabel: '去拆书', action: () => router.push('/market/deconstruction') },
+      { name: 'DNA模板库', desc: '复用爆款基因模板', icon: '🧪', actionLabel: '去浏览', action: () => router.push('/market') },
+    ],
+  },
+  {
+    key: 'character', title: '人物设计', desc: '主角团与反派设定', status: 'current', icon: '👤',
+    todo: '设计主角、配角、反派的人物档案和关系网',
+    tools: [
+      { name: '人物档案', desc: '创建/编辑人物设定', icon: '👤', actionLabel: '去编辑' },
+      { name: '人物关系图', desc: '可视化人物关系网络', icon: '🕸️', actionLabel: '去查看' },
+      { name: '对话生成', desc: 'AI辅助生成人物对话', icon: '💬', actionLabel: '去生成' },
+    ],
+  },
+  {
+    key: 'worldview', title: '世界观', desc: '设定与规则体系', status: 'pending', icon: '🌍',
+    todo: '构建完整的世界观设定和力量体系',
+    tools: [
+      { name: '世界设定', desc: '编辑世界观与规则', icon: '🌍', actionLabel: '去编辑' },
+      { name: '地点图谱', desc: '地图与场景管理', icon: '🗺️', actionLabel: '去查看' },
+      { name: '道具管理', desc: '法宝、道具设定', icon: '⚔️', actionLabel: '去管理' },
+    ],
+  },
+  {
+    key: 'pacing', title: '节奏规划', desc: '大纲与节拍表', status: 'pending', icon: '📊',
+    todo: '制定全书大纲、幕次结构和章节节拍',
+    tools: [
+      { name: '大纲规划', desc: '宏观结构与大纲', icon: '📋', actionLabel: '去规划' },
+      { name: '幕次管理', desc: '分幕与转折点设计', icon: '🎭', actionLabel: '去管理' },
+      { name: '节拍表', desc: '章节节拍与节奏控制', icon: '🥁', actionLabel: '去编排' },
+    ],
+  },
+  {
+    key: 'writing', title: '章节写作', desc: '正文创作', status: 'pending', icon: '✍️',
+    todo: '按节奏规划逐章创作正文内容',
+    tools: [
+      { name: '章节列表', desc: '查看与管理所有章节', icon: '📄', actionLabel: '去写作' },
+      { name: 'AI续写', desc: 'AI辅助生成正文', icon: '🤖', actionLabel: '去生成' },
+      { name: '伏笔系统', desc: '管理伏笔与回收', icon: '🪝', actionLabel: '去管理' },
+      { name: '知识图谱', desc: '维护故事一致性', icon: '🧠', actionLabel: '去维护' },
+    ],
+  },
+  {
+    key: 'quality', title: '质量检测', desc: '审校与优化', status: 'pending', icon: '✅',
+    todo: '检查行文质量、一致性和AI痕迹',
+    tools: [
+      { name: '文风检测', desc: '检测文风一致性', icon: '📝', actionLabel: '去检测' },
+      { name: 'AI痕迹检测', desc: '降低AI痕迹', icon: '🔍', actionLabel: '去检测' },
+      { name: '一致性检查', desc: '人物/设定一致性', icon: '✅', actionLabel: '去检查' },
+    ],
+  },
 ]
 
 const currentStepIndex = computed(() =>
@@ -530,27 +586,55 @@ onMounted(() => {
   flex: 1;
 }
 
-.step-placeholder {
+.step-tools {
+  padding: 8px 0;
+}
+
+.tool-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
-  padding: 60px 20px;
+  padding: 24px 16px;
+  border-radius: 12px;
+  background: var(--app-surface-subtle);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  height: 100%;
 }
 
-.placeholder-icon {
-  font-size: 64px;
-  display: block;
-  margin-bottom: 16px;
+.tool-card:hover {
+  background: var(--color-brand-light);
+  border-color: var(--color-brand-border);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.08);
 }
 
-.step-placeholder h3 {
-  margin: 0 0 8px;
-  font-size: 18px;
+.tool-icon {
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  border-radius: 14px;
+  background: var(--app-surface);
+  margin-bottom: 12px;
+}
+
+.tool-name {
+  font-size: 15px;
+  font-weight: 600;
   color: var(--app-text-primary);
+  margin-bottom: 4px;
 }
 
-.step-placeholder p {
-  margin: 0 0 24px;
+.tool-desc {
+  font-size: 12px;
   color: var(--app-text-muted);
-  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 10px;
 }
 
 .novel-picker-list {
