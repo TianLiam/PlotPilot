@@ -9,7 +9,12 @@ from apscheduler.triggers.cron import CronTrigger
 from infrastructure.persistence.database.connection import DatabaseConnection, get_database
 from infrastructure.persistence.database.market.sqlite_ranking_repository import SqliteRankingRepository
 from infrastructure.persistence.database.market.sqlite_dynamic_template_repository import SqliteDynamicTemplateRepository
+from infrastructure.persistence.database.market.sqlite_snapshot_repository import (
+    SqliteSnapshotRepository,
+    SqliteTrendAlertRepository,
+)
 from application.market.discovery.template_discovery_service import TemplateDiscoveryService
+from application.market.trend.trend_analysis_service import TrendAnalysisService
 from application.market.crawler.ranking_crawler_service import RankingCrawlerService
 from application.market.crawler.hot_topic_crawler_service import HotTopicCrawlerService
 
@@ -43,7 +48,7 @@ class MarketDiscoveryScheduler:
     async def daily_crawl_task(self):
         """每日爬取任务
         
-        上午9点执行：爬取榜单 + 热点
+        上午9点执行：爬取榜单 + 热点 + 保存快照
         """
         logger.info("Starting daily crawl task...")
         
@@ -60,10 +65,85 @@ class MarketDiscoveryScheduler:
             hot_topics_result = await hot_topic_crawler.crawl_all_sources()
             logger.info(f"Hot topics crawled: {sum(len(v) for v in hot_topics_result.values())} topics")
             
+            # 3. 保存榜单快照（用于趋势分析）
+            logger.info("Saving ranking snapshots...")
+            snapshot_repo = SqliteSnapshotRepository(self.db)
+            today = datetime.utcnow().strftime("%Y-%m-%d")
+            
+            saved_count = 0
+            for platform, rankings in rankings_result.items():
+                for category, items in rankings.items() if isinstance(rankings, dict) else [(platform, rankings)]:
+                    if items:
+                        snapshot_items = []
+                        for item in items[:50]:  # 只保存前50名
+                            snapshot_items.append({
+                                "novel_id": str(item.get("novel_id") or item.get("bookId", "")),
+                                "novel_name": item.get("novel_name") or item.get("bookName", ""),
+                                "author": item.get("author") or item.get("authorName", ""),
+                                "rank": item.get("rank") or item.get("index", 0),
+                                "word_count": item.get("word_count") or item.get("wordCount", 0),
+                                "popularity": item.get("popularity") or item.get("totalRead", 0),
+                                "score": item.get("score", 0.0),
+                            })
+                        
+                        await snapshot_repo.save_ranking_snapshot(
+                            type('Snapshot', (), {
+                                'snapshot_date': today,
+                                'platform': platform,
+                                'category': category,
+                                'items': [
+                                    type('Item', (), {
+                                        'platform': platform,
+                                        'category': category,
+                                        'novel_id': str(i.get("novel_id", "")),
+                                        'novel_name': i.get("novel_name", ""),
+                                        'author': i.get("author", ""),
+                                        'rank': i.get("rank", 0),
+                                        'word_count': i.get("word_count", 0),
+                                        'popularity': i.get("popularity", 0),
+                                        'score': i.get("score", 0.0),
+                                    })() for i in snapshot_items
+                                ],
+                                'total_count': len(snapshot_items),
+                                'collected_at': datetime.utcnow(),
+                            })()
+                        )
+                        saved_count += 1
+            
+            logger.info(f"Saved {saved_count} snapshots")
             logger.info("Daily crawl task completed successfully")
             
         except Exception as e:
             logger.error(f"Daily crawl task failed: {e}")
+    
+    async def daily_trend_analysis_task(self):
+        """每日趋势分析任务
+        
+        下午3点执行：分析所有题材的趋势并生成预警
+        """
+        logger.info("Starting daily trend analysis task...")
+        
+        try:
+            snapshot_repo = SqliteSnapshotRepository(self.db)
+            alert_repo = SqliteTrendAlertRepository(self.db)
+            trend_service = TrendAnalysisService(snapshot_repo, alert_repo)
+            
+            # 分析所有平台和分类
+            platforms = ["fanqie", "qidian", "qimao"]
+            categories = ["都市", "玄幻", "言情", "仙侠", "科幻", "历史", "游戏", "体育"]
+            
+            all_trends = []
+            for platform in platforms:
+                trends = await trend_service.analyze_all_genres(platform, categories, days=7)
+                all_trends.extend(trends)
+            
+            # 生成预警
+            alerts = await trend_service.generate_alerts_from_trends(all_trends)
+            
+            logger.info(f"Analyzed {len(all_trends)} trends, generated {len(alerts)} alerts")
+            
+        except Exception as e:
+            logger.error(f"Daily trend analysis task failed: {e}")
     
     async def daily_discovery_task(self):
         """每日发现任务
@@ -110,12 +190,21 @@ class MarketDiscoveryScheduler:
     def setup_jobs(self):
         """配置定时任务"""
         
-        # 每日爬取：每天上午9点
+        # 每日爬取+保存快照：每天上午9点
         self.scheduler.add_job(
             self.daily_crawl_task,
             CronTrigger(hour=9, minute=0),
             id="daily_crawl",
-            name="每日爬取榜单和热点",
+            name="每日爬取榜单和热点+保存快照",
+            replace_existing=True,
+        )
+        
+        # 每日趋势分析：每天下午3点
+        self.scheduler.add_job(
+            self.daily_trend_analysis_task,
+            CronTrigger(hour=15, minute=0),
+            id="daily_trend_analysis",
+            name="每日趋势分析",
             replace_existing=True,
         )
         
@@ -139,6 +228,7 @@ class MarketDiscoveryScheduler:
         
         logger.info("Scheduled jobs configured:")
         logger.info("  - daily_crawl: 09:00 every day")
+        logger.info("  - daily_trend_analysis: 15:00 every day")
         logger.info("  - daily_discovery: 22:00 every day")
         logger.info("  - weekly_deep_discovery: 02:00 every Sunday")
     
@@ -166,6 +256,8 @@ class MarketDiscoveryScheduler:
         """手动执行一次任务"""
         if task_name == "daily_crawl":
             asyncio.create_task(self.daily_crawl_task())
+        elif task_name == "daily_trend_analysis":
+            asyncio.create_task(self.daily_trend_analysis_task())
         elif task_name == "daily_discovery":
             asyncio.create_task(self.daily_discovery_task())
         elif task_name == "weekly_deep_discovery":
