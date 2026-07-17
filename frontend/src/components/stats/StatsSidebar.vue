@@ -134,6 +134,16 @@
           </span>
           <span>刷新列表</span>
         </button>
+        <button class="action-btn action-market" @click="navigateToMarket">
+          <span class="action-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M3 3h18v18H3z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+              <path d="M9 9h6M9 15h6M9 12h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M15 3v6M9 21v-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span>市场分析</span>
+        </button>
         <GlobalLLMEntryButton appearance="sidebar" />
         <PromptPlazaEntryButton appearance="sidebar" />
       </div>
@@ -177,6 +187,14 @@ import { storageKeys } from '@/config/storageKeys'
 import { runtimePerformance } from '@/config/performance'
 import { readStorageBoolean, writeStorageBoolean } from '@/utils/storage'
 import { getNovelStageLabel } from '@/domain/novel'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+const navigateToMarket = () => {
+  router.push('/market')
+}
+
 const emit = defineEmits<{
   (e: 'create-book'): void
   (e: 'refresh-list'): void

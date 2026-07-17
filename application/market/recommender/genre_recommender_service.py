@@ -61,12 +61,12 @@ class GenreRecommenderService:
 
     def _get_default_recommendations(self) -> List[Dict[str, Any]]:
         default_genres = [
-            {"genre": "都市", "score": 95, "stars": "★★★★★", "trend": "up", "trend_value": 15.5, "hot_tags": ["神豪", "重生", "直播"], "reason": "都市题材一直是网文热门，受众广泛"},
-            {"genre": "玄幻", "score": 88, "stars": "★★★★☆", "trend": "stable", "trend_value": 2.3, "hot_tags": ["系统", "重生", "无敌"], "reason": "玄幻题材读者基数大，稳定热门"},
-            {"genre": "仙侠", "score": 85, "stars": "★★★★☆", "trend": "up", "trend_value": 8.2, "hot_tags": ["修仙", "长生", "渡劫"], "reason": "仙侠题材近期热度上涨"},
-            {"genre": "历史", "score": 82, "stars": "★★★☆☆", "trend": "stable", "trend_value": 1.5, "hot_tags": ["穿越", "争霸", "种田"], "reason": "历史题材有稳定的读者群"},
-            {"genre": "游戏", "score": 78, "stars": "★★★☆☆", "trend": "up", "trend_value": 6.8, "hot_tags": ["网游", "电竞", "直播"], "reason": "游戏题材结合直播热点"},
-            {"genre": "科幻", "score": 75, "stars": "★★★☆☆", "trend": "stable", "trend_value": -1.2, "hot_tags": ["末世", "星际", "机甲"], "reason": "科幻题材有固定受众"}
+            {"genre": "都市", "score": 95, "stars": "★★★★★", "trend": "up", "trend_value": 15.5, "hot_topics": ["神豪", "重生", "直播"], "reason": "都市题材一直是网文热门，受众广泛"},
+            {"genre": "玄幻", "score": 88, "stars": "★★★★☆", "trend": "stable", "trend_value": 2.3, "hot_topics": ["系统", "重生", "无敌"], "reason": "玄幻题材读者基数大，稳定热门"},
+            {"genre": "仙侠", "score": 85, "stars": "★★★★☆", "trend": "up", "trend_value": 8.2, "hot_topics": ["修仙", "长生", "渡劫"], "reason": "仙侠题材近期热度上涨"},
+            {"genre": "历史", "score": 82, "stars": "★★★☆☆", "trend": "stable", "trend_value": 1.5, "hot_topics": ["穿越", "争霸", "种田"], "reason": "历史题材有稳定的读者群"},
+            {"genre": "游戏", "score": 78, "stars": "★★★☆☆", "trend": "up", "trend_value": 6.8, "hot_topics": ["网游", "电竞", "直播"], "reason": "游戏题材结合直播热点"},
+            {"genre": "科幻", "score": 75, "stars": "★★★☆☆", "trend": "stable", "trend_value": -1.2, "hot_topics": ["末世", "星际", "机甲"], "reason": "科幻题材有固定受众"}
         ]
         
         for rec in default_genres:
@@ -91,7 +91,7 @@ class GenreRecommenderService:
             "stars": "★★★☆☆",
             "trend": "stable",
             "trend_value": 0,
-            "hot_tags": [],
+            "hot_topics": [],
             "reason": f"{genre}题材是网文常见类型",
             "golden_finger_options": [
                 {"id": t.id, "name": t.name, "description": t.description}

@@ -15,3 +15,5 @@ export * from './chronicles'
 export * from './narrativeEngine'
 
 export * from './stats'
+export { marketApi } from './market'
+export type { Template, GenreRecommendation, MarketAnalysis } from './market'

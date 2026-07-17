@@ -151,11 +151,21 @@ class BackendLifecycle:
 
         with startup_sqlite_writes_bypass_queue():
             self.stop_all_running_novels()
+            self.init_market_data()
 
         self.bootstrap_persistence_consumer()
         self.recover_drafts()
         self._start_daemon()
         self.init_dag_node_registry()
+
+    def init_market_data(self) -> None:
+        try:
+            from application.market.data.initial_templates import save_initial_templates
+            from application.paths import get_db_path
+            save_initial_templates(str(get_db_path()))
+            self._logger.info("Startup: market templates initialized")
+        except Exception as exc:
+            self._logger.warning("Startup: failed to initialize market templates: %s", exc)
 
     def shutdown(self) -> None:
         """Run graceful shutdown hooks shared by uvicorn and desktop shutdown."""

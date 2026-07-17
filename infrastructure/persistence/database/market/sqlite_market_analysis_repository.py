@@ -47,11 +47,19 @@ class SqliteMarketAnalysisRepository(MarketAnalysisRepository):
                 ai_explanation = excluded.ai_explanation,
                 extra_data = excluded.extra_data
         """
+        genre_trends_data = []
+        for gt in analysis.genre_trends:
+            gt_dict = gt.__dict__.copy()
+            for key, value in gt_dict.items():
+                if isinstance(value, datetime):
+                    gt_dict[key] = value.isoformat()
+            genre_trends_data.append(gt_dict)
+        
         self.db.execute(sql, (
             analysis.id,
             analysis.analysis_date.isoformat(),
             json.dumps(analysis.platform_summary),
-            json.dumps([gt.__dict__ for gt in analysis.genre_trends]),
+            json.dumps(genre_trends_data),
             json.dumps(analysis.hot_topics_summary),
             json.dumps(analysis.recommendations),
             analysis.ai_explanation,

@@ -6,6 +6,7 @@ const Chapter = () => import('../views/Chapter.vue')
 const Cast = () => import('../views/Cast.vue')
 const CharacterGraph = () => import('../views/CharacterGraph.vue')
 const LocationGraph = () => import('../views/LocationGraph.vue')
+const Market = () => import('../views/Market.vue')
 const CharacterSchedulerSimulator = () =>
   import('../components/debug/CharacterSchedulerSimulator.vue')
 
@@ -13,6 +14,7 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/', name: 'Home', component: Home },
+    { path: '/market', name: 'Market', component: Market },
     { path: '/book/:slug/workbench', name: 'Workbench', component: Workbench },
     { path: '/book/:slug/cast', name: 'Cast', component: Cast },
     { path: '/book/:slug/chapter/:id', name: 'Chapter', component: Chapter },

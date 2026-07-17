@@ -262,7 +262,7 @@ class MarketAnalyzerService:
                 "stars": self._score_to_stars(score),
                 "trend": trend.trend,
                 "trend_value": trend.trend_value,
-                "hot_tags": trend.hot_tags,
+                "hot_topics": trend.hot_tags,
                 "reason": self._generate_reason(trend, hot_value)
             }
             recommendations.append(recommendation)
@@ -272,14 +272,14 @@ class MarketAnalyzerService:
     def _calculate_recommendation_score(self, trend: GenreTrend, hot_value: float) -> float:
         score = 0.0
         
-        score += trend.popularity_score * 0.4
+        score += trend.popularity_score * 4
         
         if trend.trend == GenreTrend.TREND_UP:
-            score += min(trend.trend_value, 10) * 0.3
+            score += min(trend.trend_value, 10) * 3
         elif trend.trend == GenreTrend.TREND_DOWN:
-            score += max(trend.trend_value, -10) * 0.2
+            score += max(trend.trend_value, -10) * 2
         
-        score += hot_value * 0.3
+        score += hot_value * 3
         
         return min(100, max(0, round(score, 2)))
 
