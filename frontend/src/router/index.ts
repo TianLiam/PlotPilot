@@ -14,6 +14,8 @@ const Market = () => import('../views/Market.vue')
 const TrendsDashboard = () => import('../views/TrendsDashboard.vue')
 const NovelResearch = () => import('../views/NovelResearch.vue')
 const Deconstruction = () => import('../views/Deconstruction.vue')
+const DeconstructionDetail = () => import('../views/DeconstructionDetail.vue')
+const PipelineMonitor = () => import('../views/PipelineMonitor.vue')
 
 const Library = () => import('../views/Library.vue')
 const Studio = () => import('../views/Studio.vue')
@@ -58,6 +60,18 @@ const router = createRouter({
           name: 'Deconstruction',
           component: Deconstruction,
           meta: { title: '市场洞察 · 爆款拆书' },
+        },
+        {
+          path: 'market/deconstruction/:id',
+          name: 'DeconstructionDetail',
+          component: DeconstructionDetail,
+          meta: { title: '市场洞察 · 拆书详情' },
+        },
+        {
+          path: 'pipeline',
+          name: 'Pipeline',
+          component: PipelineMonitor,
+          meta: { title: '多 Agent 流水线' },
         },
         {
           path: 'studio',
