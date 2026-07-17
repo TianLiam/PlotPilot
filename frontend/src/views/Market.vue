@@ -28,6 +28,12 @@
               </template>
               创作前研究
             </n-button>
+            <n-button type="warning" @click="goDeconstruction">
+              <template #icon>
+                <n-icon><IconBook /></n-icon>
+              </template>
+              爆款拆书
+            </n-button>
           </n-space>
         </template>
       </n-page-header>
@@ -356,6 +362,14 @@ const IconFlame = () =>
   h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', width: '1em', height: '1em' },
     h('path', { fill: 'currentColor', d: 'M12 23c-4.5 0-8.5-3.5-8.5-8 0-2.5 1.5-4.5 4-6 0 0-2-4 1.5-7 1.5-1.5 5 1 7 1s5.5-2.5 7-1c3.5 3 1.5 7 1.5 7 2.5 1.5 4 3.5 4 6 0 4.5-4 8-8.5 8z' }))
 
+const IconSearch = () =>
+  h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', width: '1em', height: '1em' },
+    h('path', { fill: 'currentColor', d: 'M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5z' }))
+
+const IconBook = () =>
+  h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', width: '1em', height: '1em' },
+    h('path', { fill: 'currentColor', d: 'M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z' }))
+
 const IconStar = () =>
   h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', width: '1em', height: '1em' },
     h('path', { fill: 'currentColor', d: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z' }))
@@ -415,6 +429,10 @@ const goHome = () => {
 
 const goResearch = () => {
   router.push('/research')
+}
+
+const goDeconstruction = () => {
+  router.push('/deconstruction')
 }
 
 const handleCrawlRankings = async () => {

@@ -8,6 +8,7 @@ const CharacterGraph = () => import('../views/CharacterGraph.vue')
 const LocationGraph = () => import('../views/LocationGraph.vue')
 const Market = () => import('../views/Market.vue')
 const NovelResearch = () => import('../views/NovelResearch.vue')
+const Deconstruction = () => import('../views/Deconstruction.vue')
 const CharacterSchedulerSimulator = () =>
   import('../components/debug/CharacterSchedulerSimulator.vue')
 
@@ -17,6 +18,7 @@ const router = createRouter({
     { path: '/', name: 'Home', component: Home },
     { path: '/market', name: 'Market', component: Market },
     { path: '/research', name: 'NovelResearch', component: NovelResearch },
+    { path: '/deconstruction', name: 'Deconstruction', component: Deconstruction },
     { path: '/book/:slug/workbench', name: 'Workbench', component: Workbench },
     { path: '/book/:slug/cast', name: 'Cast', component: Cast },
     { path: '/book/:slug/chapter/:id', name: 'Chapter', component: Chapter },
