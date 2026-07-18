@@ -269,6 +269,7 @@ function buildProfilePayload(
     notes: existing?.notes ?? '',
     preset_key: existing?.preset_key ?? 'custom-openai-compatible',
     use_legacy_chat_completions: existing?.use_legacy_chat_completions ?? false,
+    is_premium: existing?.is_premium ?? false,
   }
 }
 

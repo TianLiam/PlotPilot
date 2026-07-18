@@ -77,6 +77,7 @@
             :class="{
               'is-active': profile.id === panelData.config?.active_profile_id,
               'is-selected': profile.id === selectedProfileId,
+              'is-premium': profile.is_premium,
             }"
             @click="selectProfile(profile.id)"
           >
@@ -84,6 +85,9 @@
               <span class="llm-profile-name">{{ profile.name }}</span>
               <n-tag v-if="profile.id === panelData.config?.active_profile_id" size="tiny" type="success" round>
                 启用中
+              </n-tag>
+              <n-tag v-if="profile.is_premium" size="tiny" type="warning" round>
+                付费
               </n-tag>
             </div>
             <div class="llm-profile-meta">
@@ -99,16 +103,18 @@
           <template #header>
             <div class="llm-card-head">
               <div>
-                <div class="llm-card-title">{{ selectedProfile.name }}</div>
+                <div class="llm-card-title">{{ selectedProfile.name }}
+                  <n-tag v-if="selectedProfile.is_premium" size="tiny" type="warning" round style="margin-left: 8px;">付费</n-tag>
+                </div>
                 <div class="llm-card-desc">协议、网关、模型、默认参数与高级透传参数。</div>
               </div>
               <n-space :size="8">
-                <n-button size="small" secondary @click="duplicateSelected">复制</n-button>
+                <n-button size="small" secondary :disabled="selectedProfile.is_premium" @click="duplicateSelected">复制</n-button>
                 <n-button
                   size="small"
                   secondary
                   type="error"
-                  :disabled="(panelData.config?.profiles || []).length <= 1"
+                  :disabled="(panelData.config?.profiles || []).length <= 1 || selectedProfile.is_premium"
                   @click="removeSelected"
                 >
                   删除
@@ -128,25 +134,26 @@
                   :options="presetOptions"
                   placeholder="选择预设"
                   filterable
+                  :disabled="selectedProfile.is_premium"
                 />
-                <n-button secondary @click="applyPresetToSelected">应用预设</n-button>
+                <n-button secondary :disabled="selectedProfile.is_premium" @click="applyPresetToSelected">应用预设</n-button>
               </div>
               <n-text depth="3" style="font-size: 12px">{{ selectedPreset?.description || '可先套预设，再微调 endpoint。' }}</n-text>
             </div>
 
             <div class="llm-field">
               <label class="llm-label">配置名称</label>
-              <n-input v-model:value="selectedProfile.name" placeholder="例如：DeepSeek 生产网关" />
+              <n-input v-model:value="selectedProfile.name" placeholder="例如：DeepSeek 生产网关" :disabled="selectedProfile.is_premium" />
             </div>
 
             <div class="llm-field">
               <label class="llm-label">协议</label>
-              <n-select v-model:value="selectedProfile.protocol" :options="protocolOptions" />
+              <n-select v-model:value="selectedProfile.protocol" :options="protocolOptions" :disabled="selectedProfile.is_premium" />
             </div>
 
             <div class="llm-field span-2">
               <label class="llm-label">Base URL</label>
-              <n-input v-model:value="selectedProfile.base_url" placeholder="可填官方地址，也可填兼容网关地址" />
+              <n-input v-model:value="selectedProfile.base_url" placeholder="可填官方地址，也可填兼容网关地址" :disabled="selectedProfile.is_premium" />
             </div>
 
             <div class="llm-field span-2">
@@ -156,6 +163,7 @@
                 type="password"
                 show-password-on="click"
                 placeholder="本地保存；仅用于当前项目"
+                :disabled="selectedProfile.is_premium"
               />
             </div>
 
@@ -168,12 +176,13 @@
                   placeholder="填写所用网关文档中的模型 ID（本处不预设具体名称）"
                   clearable
                   style="flex: 1"
+                  :disabled="selectedProfile.is_premium"
                 />
                 <n-button
                   secondary
                   size="small"
                   :loading="fetchingModels"
-                  :disabled="!selectedProfile.api_key"
+                  :disabled="!selectedProfile.api_key || selectedProfile.is_premium"
                   @click="handleFetchModels"
                 >
                   拉取模型
@@ -186,22 +195,22 @@
 
             <div class="llm-field">
               <label class="llm-label">默认 temperature</label>
-              <n-input-number v-model:value="selectedProfile.temperature" :min="0" :max="2" :step="0.1" style="width: 100%" />
+              <n-input-number v-model:value="selectedProfile.temperature" :min="0" :max="2" :step="0.1" style="width: 100%" :disabled="selectedProfile.is_premium" />
             </div>
 
             <div class="llm-field">
               <label class="llm-label">默认 max_tokens</label>
-              <n-input-number v-model:value="selectedProfile.max_tokens" :min="1" :step="256" style="width: 100%" />
+              <n-input-number v-model:value="selectedProfile.max_tokens" :min="1" :step="256" style="width: 100%" :disabled="selectedProfile.is_premium" />
             </div>
 
             <div class="llm-field">
               <label class="llm-label">超时（秒）</label>
-              <n-input-number v-model:value="selectedProfile.timeout_seconds" :min="1" :step="10" style="width: 100%" />
+              <n-input-number v-model:value="selectedProfile.timeout_seconds" :min="1" :step="10" style="width: 100%" :disabled="selectedProfile.is_premium" />
             </div>
 
             <div v-if="selectedProfile.protocol === 'openai'" class="llm-field span-2">
               <label class="llm-label">使用旧协议（Chat Completions）</label>
-              <n-switch v-model:value="selectedProfile.use_legacy_chat_completions" />
+              <n-switch v-model:value="selectedProfile.use_legacy_chat_completions" :disabled="selectedProfile.is_premium" />
               <n-text depth="3" style="font-size: 12px">
                 关闭时走 Responses API（默认）；部分国产网关不支持新协议时请开启。
               </n-text>
@@ -209,7 +218,7 @@
 
             <div class="llm-field span-2">
               <label class="llm-label">备注</label>
-              <n-input v-model:value="selectedProfile.notes" type="textarea" :autosize="{ minRows: 2, maxRows: 4 }" placeholder="例如：公司网关、测试环境、带 reasoning 参数" />
+              <n-input v-model:value="selectedProfile.notes" type="textarea" :autosize="{ minRows: 2, maxRows: 4 }" placeholder="例如：公司网关、测试环境、带 reasoning 参数" :disabled="selectedProfile.is_premium" />
             </div>
           </div>
 
@@ -417,6 +426,7 @@ function buildProfileFromPreset(preset?: LLMPreset): LLMProfile {
     extra_body: {},
     notes: '',
     use_legacy_chat_completions: false,
+    is_premium: false,
   }
 }
 
@@ -920,6 +930,11 @@ onBeforeUnmount(() => {
 .llm-profile-item.is-active {
   background: var(--profile-active-bg, var(--color-brand-light));
   border-color: var(--profile-selected-border, var(--color-brand-hover));
+}
+
+.llm-profile-item.is-premium {
+  border-color: var(--color-warning);
+  background: linear-gradient(135deg, rgba(255, 200, 0, 0.05) 0%, transparent 100%);
 }
 
 .llm-profile-name-row {

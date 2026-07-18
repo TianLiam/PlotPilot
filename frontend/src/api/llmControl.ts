@@ -29,6 +29,7 @@ export interface LLMProfile {
   extra_body: Record<string, unknown>
   notes: string
   use_legacy_chat_completions: boolean
+  is_premium: boolean
 }
 
 export interface LLMControlConfig {

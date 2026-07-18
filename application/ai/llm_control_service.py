@@ -8,7 +8,7 @@ from typing import Any, Callable, Dict, List, Literal, Optional
 from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
 
 from domain.ai.services.llm_service import DEFAULT_MAX_OUTPUT_TOKENS
-from infrastructure.ai.llm_environment import LLMEnvironmentSettings
+from infrastructure.ai.llm_environment import LLMEnvironmentSettings, _env_text
 from infrastructure.persistence.database.connection import get_database
 from infrastructure.ai.url_utils import (
     normalize_anthropic_base_url,
@@ -50,6 +50,7 @@ class LLMProfile(BaseModel):
     extra_body: Dict[str, Any] = Field(default_factory=dict)
     notes: str = ''
     use_legacy_chat_completions: bool = False
+    is_premium: bool = False
 
     @field_validator('temperature')
     @classmethod
@@ -164,6 +165,7 @@ class LLMControlService:
             extra_body=json.loads(row.get('extra_body') or '{}'),
             notes=row['notes'] or '',
             use_legacy_chat_completions=bool(row.get('use_legacy_chat_completions', 0)),
+            is_premium=bool(row.get('is_premium', 0)),
         )
 
     def _profile_to_row(self, p: LLMProfile) -> dict:
@@ -183,6 +185,7 @@ class LLMControlService:
             extra_body=json.dumps(p.extra_body, ensure_ascii=False),
             notes=p.notes,
             use_legacy_chat_completions=int(p.use_legacy_chat_completions),
+            is_premium=int(p.is_premium),
         )
 
     # ---- 公共接口（保持与原文件版一致）----------------------------------
@@ -354,7 +357,8 @@ class LLMControlService:
                 row['base_url'], row['api_key'], row['model'],
                 row['temperature'], row['max_tokens'], row['timeout_seconds'],
                 row['extra_headers'], row['extra_query'], row['extra_body'],
-                row['notes'], row['use_legacy_chat_completions'], row['sort_order'],
+                row['notes'], row['use_legacy_chat_completions'], row['is_premium'],
+                row['sort_order'],
             ))
 
         db.execute_many(
@@ -362,8 +366,8 @@ class LLMControlService:
                 id, name, preset_key, protocol, base_url, api_key, model,
                 temperature, max_tokens, timeout_seconds,
                 extra_headers, extra_query, extra_body, notes,
-                use_legacy_chat_completions, sort_order
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                use_legacy_chat_completions, is_premium, sort_order
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             params_list,
         )
 
@@ -607,6 +611,45 @@ class LLMControlService:
                 'model': env.ark_model,
             })
             active_profile_id = profiles[0].id
+
+        deepseek_key = _env_text("DEEPSEEK_API_KEY")
+        doubao_seed_key = _env_text("DOUBAO_SEED_API_KEY")
+
+        if deepseek_key:
+            profiles.append(LLMProfile(
+                id='deepseek-official',
+                name='DeepSeek（官方）',
+                preset_key='deepseek',
+                protocol='openai',
+                base_url='https://api.deepseek.com/v1',
+                api_key=deepseek_key,
+                model='deepseek-chat',
+                temperature=0.7,
+                max_tokens=8192,
+                timeout_seconds=300,
+                notes='DeepSeek 官方模型，适用于高质量创作',
+                is_premium=True,
+            ))
+            if not active_profile_id or profiles[0].id == active_profile_id:
+                active_profile_id = 'deepseek-official'
+
+        if doubao_seed_key:
+            profiles.append(LLMProfile(
+                id='doubao-seed-ark',
+                name='豆包 Seed（火山方舟）',
+                preset_key='doubao-ark',
+                protocol='openai',
+                base_url='https://ark.cn-beijing.volces.com/api/v3',
+                api_key=doubao_seed_key,
+                model='doubao-seed-2-0-lite-260215',
+                temperature=0.7,
+                max_tokens=8192,
+                timeout_seconds=300,
+                notes='火山方舟豆包 Seed 模型，国产高性能模型',
+                is_premium=True,
+            ))
+            if not active_profile_id or profiles[0].id == active_profile_id:
+                active_profile_id = 'doubao-seed-ark'
 
         return LLMControlConfig(
             version=1,

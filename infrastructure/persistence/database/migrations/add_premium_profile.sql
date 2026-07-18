@@ -1,0 +1,1 @@
+ALTER TABLE llm_profiles ADD COLUMN is_premium INTEGER NOT NULL DEFAULT 0;
