@@ -130,7 +130,7 @@ import { WORKBENCH_GENERATION_PREFS_UPDATED_EVENT } from '@/workbench/deskEvents
 const route = useRoute()
 const message = useMessage()
 
-const novelSlug = computed(() => String(route.params.slug ?? '').trim())
+const novelSlug = computed(() => String(route.params.novelId ?? '').trim())
 const loading = ref(false)
 const novelTitle = ref('')
 const patching = ref<string | null>(null)

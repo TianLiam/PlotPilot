@@ -1,15 +1,6 @@
 <template>
   <div class="cast-page">
     <header class="cast-header">
-      <n-space align="center">
-        <n-button quaternary round @click="goWorkbench">
-          <template #icon><span class="ico">←</span></template>
-          工作台
-        </n-button>
-        <n-divider vertical />
-        <h1 class="cast-title">人物关系网</h1>
-        <n-text depth="3">{{ slug }}</n-text>
-      </n-space>
       <n-space>
         <n-input
           v-model:value="searchQ"
@@ -21,7 +12,6 @@
         />
         <n-button secondary @click="reload">刷新</n-button>
         <n-button type="primary" @click="openTriplesDrawer()">三元组表格</n-button>
-        <n-button quaternary @click="goKnowledge">工作台 · 知识库</n-button>
       </n-space>
     </header>
 
@@ -226,7 +216,7 @@ interface CastRelationship {
 const route = useRoute()
 const router = useRouter()
 const message = useMessage()
-const slug = route.params.slug as string
+const slug = route.params.novelId as string
 
 const graph = ref<{ characters: CastCharacter[]; relationships: CastRelationship[] }>({
   characters: [],

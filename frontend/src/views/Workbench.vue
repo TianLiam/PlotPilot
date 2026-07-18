@@ -112,7 +112,7 @@ const statsStore = useStatsStore()
 const workbenchRefresh = useWorkbenchRefreshStore()
 const appSettingsShell = useAppSettingsShellStore()
 
-const slug = computed(() => String(route.params.slug ?? ''))
+const slug = computed(() => String(route.params.novelId ?? ''))
 
 const chapterListRef = ref<ComponentPublicInstance<{ refreshStoryTree: () => void }> | null>(null)
 const workAreaRef = ref<ComponentPublicInstance<{

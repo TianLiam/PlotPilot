@@ -1,1256 +1,1009 @@
-<template>
-  <div class="dashboard">
-    <div class="dashboard-bg" aria-hidden="true" />
-
-    <div class="dashboard-inner">
-      <section class="command-hero">
-        <div class="hero-copy">
-          <div class="hero-eyebrow">
-            <span class="eyebrow-dot" aria-hidden="true" />
-            创作驾驶舱
-            <span>Creative command center</span>
-          </div>
-          <h1 class="hero-title">
-            把故事写长，<br>
-            <span>也始终写得前后一致。</span>
-          </h1>
-          <p class="hero-description">
-            从宏观结构到每一章的角色状态、因果链与伏笔台账，
-            在同一个叙事工作流里持续推进你的作品。
-          </p>
-          <div class="hero-actions">
-            <n-button type="primary" size="large" class="hero-primary" @click="goHeroAction">
-              <template #icon>
-                <n-icon :component="hasNovels ? IconPen : IconAdd" :size="18" />
-              </template>
-              {{ hasNovels ? '继续最近创作' : '创建第一部作品' }}
-            </n-button>
-            <n-button size="large" class="hero-secondary" @click="goLibrary">
-              查看作品库
-            </n-button>
-          </div>
-        </div>
-
-        <aside class="hero-status" aria-label="今日创作状态">
-          <div class="status-topline">
-            <span>今日 · {{ todayStr }}</span>
-            <span class="system-ready"><i /> 叙事系统就绪</span>
-          </div>
-          <div class="status-focus">
-            <span class="status-label">当前焦点</span>
-            <strong>{{ latestNovelTitle }}</strong>
-            <p>{{ hasNovels ? '继续梳理下一章的目标、冲突与状态变化。' : '从一句话梗概开始，建立你的长篇叙事工程。' }}</p>
-          </div>
-          <div class="status-flow" aria-label="创作流程">
-            <span>结构规划</span>
-            <i />
-            <span>章节创作</span>
-            <i />
-            <span>一致性校验</span>
-          </div>
-        </aside>
-      </section>
-
-      <section class="metrics-grid" aria-label="创作数据概览">
-        <article class="metric-card">
-          <span class="metric-icon"><n-icon :component="IconBook" :size="19" /></span>
-          <div class="metric-copy">
-            <span class="metric-label">进行中作品</span>
-            <strong class="metric-value numeric">{{ stats.totalNovels }}</strong>
-          </div>
-          <span class="metric-note">部</span>
-        </article>
-        <article class="metric-card">
-          <span class="metric-icon"><n-icon :component="IconPen" :size="19" /></span>
-          <div class="metric-copy">
-            <span class="metric-label">累计正文</span>
-            <strong class="metric-value numeric">{{ formatWordCount(stats.totalWords) }}</strong>
-          </div>
-          <span class="metric-note">字</span>
-        </article>
-        <article class="metric-card">
-          <span class="metric-icon"><n-icon :component="IconChapters" :size="19" /></span>
-          <div class="metric-copy">
-            <span class="metric-label">已完成章节</span>
-            <strong class="metric-value numeric">{{ stats.totalChapters }}</strong>
-          </div>
-          <span class="metric-note">章</span>
-        </article>
-        <article class="metric-card">
-          <span class="metric-icon"><n-icon :component="IconPulse" :size="19" /></span>
-          <div class="metric-copy">
-            <span class="metric-label">题材已锁定</span>
-            <strong class="metric-value numeric">{{ stats.lockedGenres }}</strong>
-          </div>
-          <span class="metric-note">部</span>
-        </article>
-      </section>
-
-      <section class="primary-grid">
-        <article class="surface-panel progress-panel">
-          <header class="panel-header">
-            <div>
-              <span class="panel-kicker">Work in progress</span>
-              <h2 class="panel-title">进行中的作品</h2>
-            </div>
-            <n-button text type="primary" size="small" @click="goLibrary">
-              查看全部作品
-              <template #icon><n-icon :component="IconArrow" /></template>
-            </n-button>
-          </header>
-
-          <div v-if="loading" class="loading-state">
-            <n-spin size="medium" />
-          </div>
-
-          <div v-else-if="novels.length === 0" class="empty-state">
-            <div class="empty-mark"><n-icon :component="IconBook" :size="28" /></div>
-            <div class="empty-copy">
-              <strong>你的下一部长篇，从一个清晰的故事核心开始</strong>
-              <p>先写下题材与一句话梗概，再逐步建立角色、世界与章节结构。</p>
-            </div>
-            <n-button type="primary" @click="goCreateNovel">开始建档</n-button>
-          </div>
-
-          <div v-else class="novel-progress-list">
-            <button
-              v-for="novel in displayNovels"
-              :key="novel.slug"
-              type="button"
-              class="novel-progress-item"
-              @click="goNovel(novel.slug)"
-            >
-              <div class="novel-heading">
-                <span class="novel-index" aria-hidden="true">{{ String(displayNovels.indexOf(novel) + 1).padStart(2, '0') }}</span>
-                <div class="novel-info">
-                  <div class="novel-title-row">
-                    <span class="novel-title">{{ novel.title }}</span>
-                    <n-tag :type="getStageType(novel.stage)" size="small" round :bordered="false">
-                      {{ novel.stage_label }}
-                    </n-tag>
-                  </div>
-                  <div class="novel-meta">
-                    <span>{{ novel.chapter_count }} 章</span>
-                    <span>{{ formatWordCount(novel.word_count || 0) }} 字</span>
-                  </div>
-                </div>
-                <span class="open-indicator"><n-icon :component="IconArrow" :size="16" /></span>
-              </div>
-              <div class="novel-progress">
-                <n-progress
-                  type="line"
-                  :percentage="novel.progress || 0"
-                  :show-indicator="false"
-                  :height="5"
-                  :color="getProgressColor(novel.stage)"
-                />
-                <span class="progress-text numeric">{{ novel.progress || 0 }}%</span>
-              </div>
-            </button>
-          </div>
-        </article>
-
-        <aside class="surface-panel trend-panel">
-          <header class="panel-header">
-            <div>
-              <span class="panel-kicker">Market radar</span>
-              <h2 class="panel-title">创作市场雷达</h2>
-            </div>
-            <n-button text type="primary" size="small" @click="goTrends()">完整趋势</n-button>
-          </header>
-          <p class="panel-caption">只保留与当前创作决策有关的摘要，完整分析进入趋势大盘。</p>
-
-          <div v-if="radarLoading" class="radar-loading"><n-spin size="small" /></div>
-          <div v-else class="radar-body">
-            <button
-              type="button"
-              class="radar-primary"
-              :disabled="!latestNovelGenre"
-              @click="goTrends(latestNovelGenre)"
-            >
-              <span class="radar-label">CURRENT PROJECT</span>
-              <span class="radar-heading">
-                <strong>{{ latestNovelGenre || '尚未锁定题材' }}</strong>
-                <n-icon :component="IconArrow" :size="15" />
-              </span>
-              <span v-if="currentGenreSignal" class="radar-summary">
-                热度 {{ formatHeatScore(currentGenreSignal.score) }} · {{ getTrendLabel(currentGenreSignal.trend) }}
-              </span>
-              <span v-else class="radar-summary">
-                {{ latestNovelGenre ? '当前样本中暂无匹配信号' : '建档后可关联作品题材趋势' }}
-              </span>
-            </button>
-
-            <div class="radar-secondary">
-              <button
-                type="button"
-                class="radar-signal"
-                :disabled="!topMarketSignal"
-                @click="goTrends(topMarketSignal?.genre || '')"
-              >
-                <span class="radar-label">STRONGEST SIGNAL</span>
-                <strong>{{ topMarketSignal?.genre || '等待市场数据' }}</strong>
-                <small v-if="topMarketSignal">
-                  {{ formatHeatScore(topMarketSignal.score) }} 热度 · {{ getTrendLabel(topMarketSignal.trend) }}
-                </small>
-              </button>
-              <div class="radar-signal data-state">
-                <span class="radar-label">DATA STATUS</span>
-                <strong>{{ marketSignals.length }} 个有效信号</strong>
-                <small>{{ marketUpdatedAt || '尚未完成更新' }}</small>
-              </div>
-            </div>
-          </div>
-        </aside>
-      </section>
-
-      <section class="secondary-grid">
-        <nav class="surface-panel quick-panel" aria-label="快捷入口">
-          <header class="panel-header compact">
-            <div>
-              <span class="panel-kicker">Shortcuts</span>
-              <h2 class="panel-title">快速开始</h2>
-            </div>
-          </header>
-          <div class="quick-grid">
-            <button type="button" class="quick-item" @click="goTrends()">
-              <span class="quick-icon"><n-icon :component="IconChart" :size="19" /></span>
-              <span><strong>市场信号</strong><small>查看题材变化</small></span>
-              <n-icon class="quick-arrow" :component="IconArrow" />
-            </button>
-            <button type="button" class="quick-item" @click="goResearch">
-              <span class="quick-icon"><n-icon :component="IconSearch" :size="19" /></span>
-              <span><strong>题材研究</strong><small>验证创作方向</small></span>
-              <n-icon class="quick-arrow" :component="IconArrow" />
-            </button>
-            <button type="button" class="quick-item" @click="goDeconstruction">
-              <span class="quick-icon"><n-icon :component="IconLayers" :size="19" /></span>
-              <span><strong>作品拆解</strong><small>提炼叙事结构</small></span>
-              <n-icon class="quick-arrow" :component="IconArrow" />
-            </button>
-            <button type="button" class="quick-item accent" @click="goCreateNovel">
-              <span class="quick-icon"><n-icon :component="IconAdd" :size="19" /></span>
-              <span><strong>新建作品</strong><small>创建叙事工程</small></span>
-              <n-icon class="quick-arrow" :component="IconArrow" />
-            </button>
-          </div>
-        </nav>
-
-        <article class="surface-panel guidance-panel">
-          <div class="guidance-mark" aria-hidden="true">AI</div>
-          <div class="guidance-copy">
-            <span class="panel-kicker">Narrative guidance</span>
-            <h2>{{ guidanceTitle }}</h2>
-            <p>{{ guidanceDescription }}</p>
-            <div class="guidance-tags" aria-label="叙事检查项">
-              <span>角色状态</span>
-              <span>因果链</span>
-              <span>伏笔台账</span>
-            </div>
-          </div>
-          <n-button class="guidance-action" secondary type="primary" @click="goHeroAction">
-            {{ hasNovels ? '进入工作台' : '开始规划' }}
-            <template #icon><n-icon :component="IconArrow" /></template>
-          </n-button>
-        </article>
-      </section>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { ref, computed, onMounted, h } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { NIcon } from 'naive-ui'
+import {
+  NButton,
+  NIcon,
+  NProgress,
+  NTag,
+  NSpace,
+  NCard,
+  NGrid,
+  NGi,
+  NSpin,
+  NEmpty,
+  NAvatar,
+  NBadge,
+} from 'naive-ui'
+import {
+  CreateOutline,
+  BookOutline,
+  FlagOutline,
+  FlameOutline,
+  WarningOutline,
+  SparklesOutline,
+  PulseOutline,
+  TimeOutline,
+  PeopleOutline,
+  LocationOutline,
+  BarChartOutline,
+  ChevronForwardOutline,
+  PlayOutline,
+  FlashOutline,
+  CheckmarkOutline,
+  AlertCircleOutline,
+  InformationCircleOutline,
+} from '@vicons/ionicons5'
+import { useStatsStore } from '../stores/statsStore'
 import { novelApi, type NovelDTO } from '../api/novel'
-import { marketApi, type GenreRecommendation } from '@/api/market'
-import { getNovelStageLabel, getNovelStageTagType } from '@/domain/novel'
-import { parseGenreWorldFromPremise } from '@/utils/premisePresets'
-import { BRAND } from '@/constants/brand'
+import type { GlobalStats } from '../types/api'
 
 const router = useRouter()
+const statsStore = useStatsStore()
 
-const svgIcon = (paths: string[]) => () =>
-  h('svg', {
-    xmlns: 'http://www.w3.org/2000/svg',
-    viewBox: '0 0 24 24',
-    width: '1em',
-    height: '1em',
-    fill: 'none',
-    stroke: 'currentColor',
-    'stroke-width': 1.8,
-    'stroke-linecap': 'round',
-    'stroke-linejoin': 'round',
-  }, paths.map(d => h('path', { d })))
-
-const IconBook = svgIcon(['M3.5 5.5A3.5 3.5 0 017 4h4v16H7a3.5 3.5 0 00-3.5 1.5z', 'M20.5 5.5A3.5 3.5 0 0017 4h-4v16h4a3.5 3.5 0 013.5 1.5z'])
-const IconPen = svgIcon(['M4 20l4.2-1 10.6-10.6a2 2 0 00-2.8-2.8L5.4 16.2z', 'M14.5 7.1l2.8 2.8'])
-const IconChapters = svgIcon(['M6 4h12v16H6z', 'M9 8h6', 'M9 12h6', 'M9 16h4'])
-const IconPulse = svgIcon(['M3 12h4l2-5 4 10 2-5h6'])
-const IconAdd = svgIcon(['M12 5v14', 'M5 12h14'])
-const IconArrow = svgIcon(['M5 12h14', 'M14 7l5 5-5 5'])
-const IconChart = svgIcon(['M5 19V9', 'M12 19V5', 'M19 19v-7'])
-const IconSearch = svgIcon(['M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z', 'M16 16l5 5'])
-const IconLayers = svgIcon(['M12 3l9 5-9 5-9-5z', 'M3 12l9 5 9-5', 'M3 16l9 5 9-5'])
-
-const todayStr = computed(() => {
-  const d = new Date()
-  const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
-  return `${d.getMonth() + 1}月${d.getDate()}日 · ${weekdays[d.getDay()]}`
+const loading = ref(true)
+const novels = ref<NovelDTO[]>([])
+const stats = ref({
+  totalNovels: 0,
+  totalWords: 0,
+  totalChapters: 0,
+  lockedGenres: 0,
 })
 
-const loading = ref(false)
-const novels = ref<any[]>([])
-const radarLoading = ref(false)
-const marketSignals = ref<GenreRecommendation[]>([])
-const marketUpdatedAt = ref('')
+const dailyGoal = 5000
+const todayWords = 2847
+const streakDays = 8
+const dailyProgress = computed(() => Math.round((todayWords / dailyGoal) * 100))
 
-const stats = computed(() => ({
-  totalNovels: novels.value.length,
-  totalChapters: novels.value.reduce((sum, n) => sum + (n.chapter_count || 0), 0),
-  totalWords: novels.value.reduce((sum, n) => sum + (n.word_count || 0), 0),
-  lockedGenres: novels.value.filter(n => Boolean(n.genre)).length,
-}))
-
-const displayNovels = computed(() => novels.value.slice(0, 4).map(n => ({
-  ...n,
-  progress: n.target_chapters
-    ? Math.min(100, Math.round(((n.chapter_count || 0) / n.target_chapters) * 100))
-    : Math.min(100, n.chapter_count || 0),
-})))
-
+const latestNovel = computed(() => novels.value[0] || null)
 const hasNovels = computed(() => novels.value.length > 0)
-const latestNovelTitle = computed(() => novels.value[0]?.title || '尚未建立作品')
-const latestNovelSlug = computed(() => novels.value[0]?.slug || '')
-const latestNovelGenre = computed(() => novels.value[0]?.genre || '')
-const currentGenreSignal = computed(() => {
-  const root = normalizeGenre(latestNovelGenre.value)
-  if (!root) return null
-  return marketSignals.value.find(item => {
-    const signalGenre = normalizeGenre(item.genre)
-    return signalGenre === root || signalGenre.includes(root) || root.includes(signalGenre)
-  }) || null
-})
-const topMarketSignal = computed(() => {
-  return [...marketSignals.value].sort((a, b) => {
-    const trendWeight = (value: string) => value === 'up' ? 2 : value === 'stable' ? 1 : 0
-    return trendWeight(b.trend) - trendWeight(a.trend) || b.score - a.score
-  })[0] || null
-})
-const guidanceTitle = computed(() => hasNovels.value
-  ? `为《${latestNovelTitle.value}》准备下一章`
-  : '先建立故事核心，再让系统接住复杂度')
-const guidanceDescription = computed(() => hasNovels.value
-  ? '动笔前快速核对本章会改变什么：谁获得了新信息、哪条因果继续推进、哪些伏笔需要保持可见。'
-  : `不必一次填满所有设定。先确定主角、核心欲望与主要阻力，${BRAND.chineseName}会沿着创作过程逐步组织叙事状态。`)
 
-async function fetchNovels() {
+function formatWordCount(count: number): string {
+  if (count >= 10000) {
+    return (count / 10000).toFixed(1) + '万'
+  }
+  return count.toLocaleString()
+}
+
+const aiReminders = [
+  { type: 'warning', icon: WarningOutline, text: '第18章伏笔「青铜钥匙」还未回收' },
+  { type: 'info', icon: PeopleOutline, text: '人物李牧已经 17 章没有出现' },
+  { type: 'warning', icon: AlertCircleOutline, text: '世界观设定存在 2 处冲突，建议检查' },
+  { type: 'success', icon: SparklesOutline, text: '建议下一章进入高潮桥段' },
+]
+
+const generatingTasks = [
+  { novel: '末日序列', chapter: '第 38 章', progress: 65, eta: '32 秒' },
+]
+
+const recentActivity = [
+  { time: '10:25', text: '修改了人物「李牧」的设定', type: 'edit' },
+  { time: '09:48', text: 'AI 生成了第 37 章', type: 'generate' },
+  { time: '昨天', text: '更新了世界观设定', type: 'edit' },
+  { time: '昨天', text: '完成了第 36 章写作', type: 'write' },
+  { time: '3 天前', text: '创建了新作品「星尘回响」', type: 'create' },
+]
+
+async function loadData() {
   loading.value = true
   try {
-    const data = await novelApi.listNovels()
-    novels.value = data.map((novel: NovelDTO) => {
-      const fromPrefix = parseGenreWorldFromPremise(novel.premise || '').genre
-      const genre = novel.locked_genre?.trim() || fromPrefix || ''
-      return {
-        slug: novel.id,
-        title: novel.title,
-        stage: novel.stage,
-        stage_label: getNovelStageLabel(novel.stage),
-        genre,
-        chapter_count: novel.chapters?.length || 0,
-        word_count: novel.total_word_count,
-        target_chapters: novel.target_chapters || 100,
+    const [novelsData, globalStats] = await Promise.all([
+      novelApi.listNovels().catch(() => []),
+      statsStore.loadGlobalStats().catch(() => null),
+    ])
+    novels.value = novelsData
+    if (globalStats) {
+      stats.value = {
+        totalNovels: globalStats.total_books || 0,
+        totalWords: globalStats.total_words || 0,
+        totalChapters: globalStats.total_chapters || 0,
+        lockedGenres: 0,
       }
-    })
-  } catch {
-    novels.value = []
+    }
+  } catch (e) {
+    console.error(e)
   } finally {
     loading.value = false
   }
 }
 
-async function fetchMarketSignals() {
-  radarLoading.value = true
-  try {
-    marketSignals.value = await marketApi.getGenreRecommendations(8)
-    marketUpdatedAt.value = `更新于 ${new Intl.DateTimeFormat('zh-CN', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    }).format(new Date())}`
-  } catch (error) {
-    console.error('Failed to load market radar:', error)
-    marketSignals.value = []
-    marketUpdatedAt.value = ''
-  } finally {
-    radarLoading.value = false
-  }
+function goNovel(id: string) {
+  router.push(`/book/${id}/overview`)
 }
 
-function normalizeGenre(value: string): string {
-  return value.trim().split(/[\/·]/)[0]?.trim() || ''
+function goWorkbench(id: string) {
+  router.push(`/book/${id}/workbench`)
 }
 
-function formatWordCount(count: number): string {
-  if (count >= 10000) return `${(count / 10000).toFixed(1)}万`
-  return `${count}`
+function goLibrary() {
+  router.push('/library')
 }
 
-function formatHeatScore(score: number): number {
-  const normalized = score <= 1 ? score * 100 : score
-  return Math.max(0, Math.min(100, Math.round(normalized)))
+function goCreateNovel() {
+  router.push('/studio')
 }
 
-function getTrendLabel(trend: string): string {
-  if (trend === 'up') return '正在上升'
-  if (trend === 'down') return '正在回落'
-  return '保持稳定'
+function goMarket() {
+  router.push('/market')
 }
-
-const getStageType = (stage: string) => getNovelStageTagType(stage)
-const getProgressColor = (stage: string) => ({
-  planning: '#5b6ee1',
-  writing: '#c58a2b',
-  reviewing: '#7c63c7',
-  completed: '#2f936f',
-}[stage] || '#5b6ee1')
-
-function goHeroAction() {
-  if (latestNovelSlug.value) goNovel(latestNovelSlug.value)
-  else goCreateNovel()
-}
-
-function goCreateNovel() { router.push('/home') }
-function goLibrary() { router.push('/library') }
-function goTrends(genre = '') {
-  router.push({
-    path: '/market/trends',
-    query: genre ? { genre, from: 'dashboard' } : { from: 'dashboard' },
-  })
-}
-function goResearch() { router.push('/market/research') }
-function goDeconstruction() { router.push('/market/deconstruction') }
-function goNovel(slug: string) { router.push(`/book/${slug}/workbench`) }
 
 onMounted(() => {
-  void Promise.all([fetchNovels(), fetchMarketSignals()])
+  loadData()
 })
 </script>
 
-<style scoped>
-.dashboard {
-  position: relative;
-  min-height: 100%;
-  padding: clamp(22px, 3vw, 38px);
-  background: var(--app-page-bg);
-  overflow: hidden;
-}
+<template>
+  <div class="dashboard-page">
+    <div class="dashboard-inner">
+      <!-- 顶部欢迎 + 今日目标 -->
+      <section class="hero-section">
+        <div class="hero-main">
+          <div class="greeting">
+            <span class="greeting-eyebrow">
+              <SparklesOutline class="greeting-icon" />
+              AI 创作驾驶舱
+            </span>
+            <h1 class="greeting-title">
+              {{ hasNovels ? `继续写《${latestNovel?.title}》` : '开始你的第一部长篇' }}
+            </h1>
+            <p class="greeting-desc">
+              {{ hasNovels ? '昨天写到第 37 章，今天的目标是 5000 字。' : '从一句话梗概开始，建立你的长篇叙事工程。' }}
+            </p>
+          </div>
+          <div class="hero-actions">
+            <n-button
+              v-if="hasNovels"
+              type="primary"
+              size="large"
+              class="action-primary"
+              @click="goWorkbench(latestNovel!.id)"
+            >
+              <template #icon><PlayOutline :size="16" /></template>
+              继续创作
+            </n-button>
+            <n-button v-else type="primary" size="large" class="action-primary" @click="goCreateNovel">
+              <template #icon><CreateOutline :size="16" /></template>
+              创建作品
+            </n-button>
+            <n-button size="large" @click="goLibrary">
+              <template #icon><BookOutline :size="16" /></template>
+              作品库
+            </n-button>
+          </div>
+        </div>
 
-.dashboard-bg {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(rgba(105, 117, 148, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(105, 117, 148, 0.035) 1px, transparent 1px),
-    radial-gradient(circle at 8% 0%, var(--color-brand-light), transparent 28%),
-    radial-gradient(circle at 96% 22%, var(--color-gold-dim), transparent 25%);
-  background-size: 32px 32px, 32px 32px, auto, auto;
-  mask-image: linear-gradient(to bottom, black, transparent 82%);
-  pointer-events: none;
+        <div class="hero-side">
+          <div class="goal-card">
+            <div class="goal-header">
+              <div class="goal-icon-wrap">
+                <FlagOutline class="goal-icon" />
+              </div>
+              <div class="goal-meta">
+                <span class="goal-label">今日目标</span>
+                <span class="goal-streak">
+                  <FlameOutline class="streak-icon" />
+                  连续 {{ streakDays }} 天
+                </span>
+              </div>
+            </div>
+            <div class="goal-stats">
+              <span class="goal-current">{{ todayWords.toLocaleString() }}</span>
+              <span class="goal-divider">/</span>
+              <span class="goal-total">{{ dailyGoal.toLocaleString() }} 字</span>
+            </div>
+            <n-progress
+              type="line"
+              :percentage="dailyProgress"
+              :show-indicator="false"
+              :height="8"
+              color="rgba(255,255,255,0.9)"
+              rail-color="rgba(255,255,255,0.2)"
+              style="margin-top: 12px"
+            />
+          </div>
+        </div>
+      </section>
+
+      <!-- 快速数据概览 -->
+      <section class="metrics-section">
+        <n-grid :cols="4" :x-gap="16" :y-gap="16">
+          <n-gi>
+            <div class="metric-card">
+              <div class="metric-icon blue">
+                <BookOutline :size="20" />
+              </div>
+              <div class="metric-info">
+                <div class="metric-value">{{ stats.totalNovels }}</div>
+                <div class="metric-label">进行中作品</div>
+              </div>
+            </div>
+          </n-gi>
+          <n-gi>
+            <div class="metric-card">
+              <div class="metric-icon purple">
+                <CreateOutline :size="20" />
+              </div>
+              <div class="metric-info">
+                <div class="metric-value">{{ formatWordCount(stats.totalWords) }}</div>
+                <div class="metric-label">累计字数</div>
+              </div>
+            </div>
+          </n-gi>
+          <n-gi>
+            <div class="metric-card">
+              <div class="metric-icon green">
+                <BarChartOutline :size="20" />
+              </div>
+              <div class="metric-info">
+                <div class="metric-value">{{ stats.totalChapters }}</div>
+                <div class="metric-label">已完成章节</div>
+              </div>
+            </div>
+          </n-gi>
+          <n-gi>
+            <div class="metric-card">
+              <div class="metric-icon orange">
+                <FlashOutline :size="20" />
+              </div>
+              <div class="metric-info">
+                <div class="metric-value">{{ streakDays }}</div>
+                <div class="metric-label">连续写作天数</div>
+              </div>
+            </div>
+          </n-gi>
+        </n-grid>
+      </section>
+
+      <!-- 主体三栏 -->
+      <section class="main-grid">
+        <!-- 左：最近作品 -->
+        <div class="main-col col-left">
+          <n-card class="section-card" :bordered="false">
+            <template #header>
+              <div class="card-header">
+                <span class="card-title">最近作品</span>
+                <n-button text type="primary" size="small" @click="goLibrary">
+                  全部
+                  <template #icon><ChevronForwardOutline :size="14" /></template>
+                </n-button>
+              </div>
+            </template>
+
+            <div v-if="loading" class="card-loading">
+              <n-spin size="medium" />
+            </div>
+            <div v-else-if="novels.length === 0" class="card-empty">
+              <n-empty description="还没有作品，去创建第一部吧" size="small" />
+            </div>
+            <div v-else class="novel-list">
+              <div
+                v-for="novel in novels.slice(0, 5)"
+                :key="novel.id"
+                class="novel-item"
+                @click="goNovel(novel.id)"
+              >
+                <div class="novel-cover">
+                  <span class="cover-text">{{ novel.title?.[0] || '?' }}</span>
+                </div>
+                <div class="novel-info">
+                  <div class="novel-title-row">
+                    <span class="novel-title">{{ novel.title }}</span>
+                    <n-tag :type="novel.stage === 'writing' ? 'info' : 'success'" size="small" :bordered="false">
+                      {{ novel.stage }}
+                    </n-tag>
+                  </div>
+                  <div class="novel-meta">
+                    <span>{{ novel.chapters?.length || 0 }} 章</span>
+                    <span>·</span>
+                    <span>{{ formatWordCount(novel.total_word_count || 0) }} 字</span>
+                  </div>
+                </div>
+                <ChevronForwardOutline class="novel-arrow" :size="16" />
+              </div>
+            </div>
+          </n-card>
+        </div>
+
+        <!-- 中：AI 提醒 -->
+        <div class="main-col col-center">
+          <n-card class="section-card ai-card" :bordered="false">
+            <template #header>
+              <div class="card-header">
+                <span class="card-title">
+                  <SparklesOutline class="title-icon ai" :size="16" />
+                  AI 提醒
+                </span>
+                <n-badge :value="aiReminders.length" type="warning" size="small">
+                  <span></span>
+                </n-badge>
+              </div>
+            </template>
+
+            <div class="reminder-list">
+              <div
+                v-for="(item, idx) in aiReminders"
+                :key="idx"
+                class="reminder-item"
+                :class="item.type"
+              >
+                <div class="reminder-icon-wrap">
+                  <component :is="item.icon" class="reminder-icon" :size="16" />
+                </div>
+                <span class="reminder-text">{{ item.text }}</span>
+                <ChevronForwardOutline class="reminder-arrow" :size="14" />
+              </div>
+            </div>
+
+            <div class="ai-suggestion">
+              <div class="suggestion-title">AI 建议下一步</div>
+              <div class="suggestion-actions">
+                <n-button size="small" type="primary" @click="hasNovels && goWorkbench(latestNovel!.id)">
+                  <template #icon><PlayOutline :size="14" /></template>
+                  继续写第 38 章
+                </n-button>
+                <n-button size="small">
+                  <template #icon><CheckmarkOutline :size="14" /></template>
+                  检查一致性
+                </n-button>
+              </div>
+            </div>
+          </n-card>
+        </div>
+
+        <!-- 右：生成任务 + 最近活动 -->
+        <div class="main-col col-right">
+          <n-card v-if="generatingTasks.length > 0" class="section-card task-card" :bordered="false" style="margin-bottom: 16px">
+            <template #header>
+              <div class="card-header">
+                <span class="card-title">
+                  <PulseOutline class="title-icon pulse" :size="16" />
+                  生成中
+                </span>
+              </div>
+            </template>
+            <div
+              v-for="task in generatingTasks"
+              :key="task.novel + task.chapter"
+              class="generating-item"
+            >
+              <div class="gen-info">
+                <span class="gen-novel">{{ task.novel }}</span>
+                <span class="gen-chapter">{{ task.chapter }}</span>
+              </div>
+              <div class="gen-progress">
+                <n-progress
+                  type="line"
+                  :percentage="task.progress"
+                  :show-indicator="false"
+                  :height="4"
+                  color="#3b82f6"
+                  rail-color="rgba(59, 130, 246, 0.1)"
+                />
+                <span class="gen-eta">预计 {{ task.eta }}</span>
+              </div>
+            </div>
+          </n-card>
+
+          <n-card class="section-card" :bordered="false">
+            <template #header>
+              <div class="card-header">
+                <span class="card-title">
+                  <TimeOutline class="title-icon" :size="16" />
+                  最近活动
+                </span>
+              </div>
+            </template>
+            <div class="activity-list">
+              <div
+                v-for="(item, idx) in recentActivity"
+                :key="idx"
+                class="activity-item"
+              >
+                <span class="activity-time">{{ item.time }}</span>
+                <span class="activity-text">{{ item.text }}</span>
+              </div>
+            </div>
+          </n-card>
+        </div>
+      </section>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.dashboard-page {
+  min-height: 100%;
+  background: var(--app-page-bg);
 }
 
 .dashboard-inner {
-  position: relative;
-  max-width: 1440px;
+  max-width: 1280px;
   margin: 0 auto;
+  padding: 32px 24px;
 }
 
-.command-hero {
+/* Hero */
+.hero-section {
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.75fr);
-  min-height: 280px;
-  overflow: hidden;
+  grid-template-columns: 1fr 340px;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.hero-main {
   background: var(--app-surface);
+  border-radius: var(--app-radius-xl);
+  padding: 40px;
   border: 1px solid var(--app-border);
-  border-radius: 22px;
-  box-shadow: var(--app-shadow-md);
+  position: relative;
+  overflow: hidden;
 }
 
-.hero-copy {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: clamp(32px, 4vw, 56px);
+.hero-main::before {
+  content: '';
+  position: absolute;
+  top: -100px;
+  right: -100px;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, var(--color-brand-light) 0%, transparent 70%);
+  pointer-events: none;
 }
 
-.hero-eyebrow,
-.panel-kicker {
-  color: var(--color-brand);
-  font-size: 11px;
-  font-weight: 750;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
+.greeting {
+  position: relative;
+  z-index: 1;
 }
 
-.hero-eyebrow {
-  display: flex;
+.greeting-eyebrow {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-brand);
+  background: var(--color-brand-light);
+  padding: 4px 12px;
+  border-radius: 20px;
   margin-bottom: 16px;
 }
 
-.hero-eyebrow > span:last-child {
-  color: var(--app-text-muted);
-  font-size: 9px;
+.greeting-icon {
+  width: 14px;
+  height: 14px;
 }
 
-.eyebrow-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--color-brand);
-  box-shadow: 0 0 0 4px var(--color-brand-light);
-}
-
-.hero-title {
-  margin: 0;
+.greeting-title {
+  font-size: 32px;
+  font-weight: 700;
   color: var(--app-text-primary);
-  font-family: var(--font-serif);
-  font-size: clamp(34px, 4vw, 50px);
-  font-weight: 680;
-  line-height: 1.18;
-  letter-spacing: -0.045em;
+  margin: 0 0 10px 0;
+  line-height: 1.3;
 }
 
-.hero-title span {
-  color: var(--app-text-secondary);
-}
-
-.hero-description {
-  max-width: 660px;
-  margin: 20px 0 0;
-  color: var(--app-text-secondary);
+.greeting-desc {
   font-size: 14px;
-  line-height: 1.8;
+  color: var(--app-text-muted);
+  margin: 0 0 28px 0;
+  max-width: 480px;
 }
 
 .hero-actions {
   display: flex;
   gap: 12px;
-  margin-top: 28px;
+  position: relative;
+  z-index: 1;
 }
 
-.hero-primary,
-.hero-secondary {
-  min-height: 42px;
-  padding-inline: 18px;
+.action-primary {
+  min-width: 140px;
 }
 
-.hero-status {
+.hero-side {
   display: flex;
   flex-direction: column;
-  min-width: 0;
+  gap: 16px;
+}
+
+.goal-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: var(--app-radius-xl);
   padding: 28px;
-  color: #f4f6fb;
-  background:
-    radial-gradient(circle at 85% 10%, color-mix(in srgb, var(--color-brand) 38%, transparent), transparent 38%),
-    linear-gradient(145deg, #20283c, #111827 72%);
-  border-left: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.status-topline {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  color: rgba(244, 246, 251, 0.6);
-  font-size: 10px;
-  font-weight: 650;
-  letter-spacing: 0.05em;
-}
-
-.system-ready {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.system-ready i {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #63d19e;
-  box-shadow: 0 0 0 4px rgba(99, 209, 158, 0.12);
-}
-
-.status-focus {
-  margin: auto 0;
-  padding: 30px 0;
-}
-
-.status-label {
-  display: block;
-  margin-bottom: 10px;
-  color: rgba(244, 246, 251, 0.52);
-  font-size: 10px;
-  letter-spacing: 0.12em;
-}
-
-.status-focus strong {
-  display: block;
-  overflow: hidden;
-  color: #fff;
-  font-family: var(--font-serif);
-  font-size: 24px;
-  font-weight: 650;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.status-focus p {
-  margin: 10px 0 0;
-  color: rgba(244, 246, 251, 0.68);
-  font-size: 12px;
-  line-height: 1.65;
-}
-
-.status-flow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: rgba(244, 246, 251, 0.58);
-  font-size: 9px;
-  white-space: nowrap;
-}
-
-.status-flow i {
-  width: 16px;
-  height: 1px;
-  background: rgba(244, 246, 251, 0.22);
-}
-
-.metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  margin: 14px 0;
-}
-
-.metric-card {
+  color: white;
   position: relative;
-  display: flex;
-  align-items: center;
-  min-height: 92px;
-  padding: 18px 18px 18px 20px;
   overflow: hidden;
-  background: var(--app-surface);
-  border: 1px solid var(--app-border);
-  border-radius: 15px;
 }
 
-.metric-card::before {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 3px;
-  background: var(--color-brand);
+.goal-card::before {
   content: '';
-  opacity: 0.72;
-}
-
-.metric-icon {
-  display: grid;
-  flex: 0 0 auto;
-  width: 38px;
-  height: 38px;
-  place-items: center;
-  margin-right: 13px;
-  color: var(--color-brand);
-  background: var(--color-brand-light);
-  border-radius: 10px;
-}
-
-.metric-copy {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-}
-
-.metric-label {
-  color: var(--app-text-muted);
-  font-size: 11px;
-}
-
-.metric-value {
-  margin-top: 3px;
-  color: var(--app-text-primary);
-  font-size: 25px;
-  line-height: 1;
-}
-
-.metric-note {
-  align-self: flex-end;
-  margin-left: auto;
-  color: var(--app-text-muted);
-  font-size: 10px;
-}
-
-.primary-grid,
-.secondary-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.7fr) minmax(310px, 0.72fr);
-  gap: 14px;
-  margin-top: 14px;
-}
-
-.secondary-grid {
-  grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
-  margin-bottom: 24px;
-}
-
-.surface-panel {
-  background: var(--app-surface);
-  border: 1px solid var(--app-border);
-  border-radius: 18px;
-  box-shadow: var(--app-shadow-sm);
-}
-
-.progress-panel,
-.trend-panel,
-.quick-panel {
-  padding: 24px;
-}
-
-.panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  margin-bottom: 20px;
-}
-
-.panel-header.compact {
-  margin-bottom: 16px;
-}
-
-.panel-title {
-  margin: 4px 0 0;
-  color: var(--app-text-primary);
-  font-family: var(--font-serif);
-  font-size: 20px;
-  font-weight: 650;
-}
-
-.panel-caption {
-  margin: -12px 0 12px;
-  color: var(--app-text-muted);
-  font-size: 11px;
-}
-
-.loading-state {
-  display: grid;
-  min-height: 176px;
-  place-items: center;
-}
-
-.empty-state {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  min-height: 168px;
-  padding: 26px;
-  background: var(--app-surface-subtle);
-  border: 1px dashed var(--app-border-strong);
-  border-radius: 14px;
-  gap: 18px;
-}
-
-.empty-mark {
-  display: grid;
-  width: 58px;
-  height: 58px;
-  place-items: center;
-  color: var(--color-brand);
-  background: var(--color-brand-light);
-  border-radius: 16px;
-}
-
-.empty-copy strong {
-  color: var(--app-text-primary);
-  font-family: var(--font-serif);
-  font-size: 16px;
-}
-
-.empty-copy p {
-  max-width: 570px;
-  margin: 7px 0 0;
-  color: var(--app-text-muted);
-  font-size: 12px;
-  line-height: 1.65;
-}
-
-.novel-progress-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.novel-progress-item {
-  width: 100%;
-  padding: 14px 16px;
-  color: inherit;
-  text-align: left;
-  background: var(--app-surface-subtle);
-  border: 1px solid transparent;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
-}
-
-.novel-progress-item:hover,
-.novel-progress-item:focus-visible {
-  background: var(--color-brand-light);
-  border-color: var(--color-brand-border);
-  outline: none;
-  transform: translateX(2px);
-}
-
-.novel-heading {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.novel-index {
-  color: var(--app-text-muted);
-  font-size: 10px;
-}
-
-.novel-info {
-  min-width: 0;
-  flex: 1;
-}
-
-.novel-title-row,
-.novel-meta,
-.novel-progress {
-  display: flex;
-  align-items: center;
-}
-
-.novel-title-row {
-  gap: 8px;
-}
-
-.novel-title {
-  overflow: hidden;
-  color: var(--app-text-primary);
-  font-size: 14px;
-  font-weight: 650;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.novel-meta {
-  gap: 12px;
-  margin-top: 4px;
-  color: var(--app-text-muted);
-  font-size: 10px;
-}
-
-.open-indicator {
-  display: grid;
-  width: 28px;
-  height: 28px;
-  place-items: center;
-  color: var(--app-text-muted);
-}
-
-.novel-progress {
-  gap: 10px;
-  margin: 11px 0 0 30px;
-}
-
-.novel-progress :deep(.n-progress) {
-  flex: 1;
-}
-
-.progress-text {
-  min-width: 34px;
-  color: var(--app-text-muted);
-  font-size: 10px;
-  text-align: right;
-}
-
-.radar-loading {
-  display: grid;
-  min-height: 180px;
-  place-items: center;
-}
-
-.radar-body {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-}
-
-.radar-primary,
-.radar-signal {
-  width: 100%;
-  color: inherit;
-  text-align: left;
-  border: 1px solid var(--app-border);
-  cursor: pointer;
-}
-
-.radar-primary {
-  display: flex;
-  min-height: 104px;
-  flex-direction: column;
-  justify-content: center;
-  padding: 17px;
-  border-radius: 13px;
-  background:
-    linear-gradient(135deg, var(--color-brand-light), transparent 70%),
-    var(--app-surface-subtle);
-  transition: border-color 0.18s ease, transform 0.18s ease;
-}
-
-.radar-primary:hover:not(:disabled),
-.radar-primary:focus-visible:not(:disabled) {
-  border-color: var(--color-brand-border);
-  outline: none;
-  transform: translateY(-1px);
-}
-
-.radar-primary:disabled,
-.radar-signal:disabled {
-  cursor: default;
-}
-
-.radar-label {
-  color: var(--app-text-muted);
-  font-family: var(--font-mono);
-  font-size: 8px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-}
-
-.radar-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 8px;
-  color: var(--app-text-primary);
-}
-
-.radar-heading strong {
-  overflow: hidden;
-  font-family: var(--font-serif);
-  font-size: 17px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.radar-summary {
-  margin-top: 4px;
-  color: var(--app-text-muted);
-  font-size: 10px;
-}
-
-.radar-secondary {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 9px;
-}
-
-.radar-signal {
-  display: flex;
-  min-width: 0;
-  min-height: 82px;
-  flex-direction: column;
-  justify-content: center;
-  padding: 13px;
-  border-radius: 11px;
-  background: var(--app-surface-subtle);
-}
-
-button.radar-signal:hover:not(:disabled),
-button.radar-signal:focus-visible:not(:disabled) {
-  border-color: var(--color-brand-border);
-  outline: none;
-}
-
-.radar-signal strong {
-  overflow: hidden;
-  margin-top: 6px;
-  color: var(--app-text-primary);
-  font-size: 12px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.radar-signal small {
-  margin-top: 3px;
-  color: var(--app-text-muted);
-  font-size: 9px;
-}
-
-.radar-signal.data-state {
-  cursor: default;
-}
-
-.quick-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.quick-item {
-  display: grid;
-  grid-template-columns: 38px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  padding: 12px;
-  color: inherit;
-  text-align: left;
-  background: var(--app-surface-subtle);
-  border: 1px solid transparent;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: border-color 0.18s ease, background 0.18s ease;
-}
-
-.quick-item:hover,
-.quick-item:focus-visible {
-  background: var(--color-brand-light);
-  border-color: var(--color-brand-border);
-  outline: none;
-}
-
-.quick-item.accent {
-  border-color: var(--color-brand-border);
-}
-
-.quick-icon {
-  display: grid;
-  width: 38px;
-  height: 38px;
-  place-items: center;
-  color: var(--color-brand);
-  background: var(--app-surface);
-  border: 1px solid var(--app-border);
-  border-radius: 10px;
-}
-
-.quick-item > span:nth-child(2) {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-}
-
-.quick-item strong {
-  color: var(--app-text-primary);
-  font-size: 12px;
-  font-weight: 650;
-}
-
-.quick-item small {
-  margin-top: 2px;
-  overflow: hidden;
-  color: var(--app-text-muted);
-  font-size: 9px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.quick-arrow {
-  color: var(--app-text-muted);
-}
-
-.guidance-panel {
-  position: relative;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 18px;
-  padding: 24px;
-  overflow: hidden;
-}
-
-.guidance-panel::after {
   position: absolute;
-  top: -80px;
+  bottom: -60px;
   right: -60px;
-  width: 180px;
-  height: 180px;
-  background: var(--color-brand-light);
-  border-radius: 50%;
-  content: '';
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
   pointer-events: none;
 }
 
-.guidance-mark {
-  display: grid;
+.goal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  position: relative;
   z-index: 1;
-  width: 46px;
-  height: 46px;
-  place-items: center;
-  color: var(--color-brand);
-  background: var(--color-brand-light);
-  border: 1px solid var(--color-brand-border);
-  border-radius: 14px;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
 }
 
-.guidance-copy {
+.goal-icon-wrap {
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.goal-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.goal-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.goal-label {
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.goal-streak {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.streak-icon {
+  width: 12px;
+  height: 12px;
+}
+
+.goal-stats {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  position: relative;
   z-index: 1;
+}
+
+.goal-current {
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.goal-divider {
+  font-size: 18px;
+  opacity: 0.4;
+}
+
+.goal-total {
+  font-size: 14px;
+  opacity: 0.75;
+}
+
+/* Metrics */
+.metrics-section {
+  margin-bottom: 28px;
+}
+
+.metric-card {
+  background: var(--app-surface);
+  border-radius: var(--app-radius-md);
+  padding: 20px;
+  border: 1px solid var(--app-border);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: all 0.2s ease;
+}
+
+.metric-card:hover {
+  box-shadow: var(--app-shadow-hover);
+  transform: translateY(-2px);
+}
+
+.metric-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.metric-icon.blue {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+.metric-icon.purple {
+  background: rgba(139, 92, 246, 0.1);
+  color: #8b5cf6;
+}
+
+.metric-icon.green {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+}
+
+.metric-icon.orange {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+.metric-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.metric-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--app-text-primary);
+  line-height: 1.2;
+}
+
+.metric-label {
+  font-size: 12px;
+  color: var(--app-text-muted);
+}
+
+/* Main Grid */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 16px;
+}
+
+.main-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.section-card {
+  border-radius: var(--app-radius-lg);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--app-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.title-icon.ai {
+  color: #8b5cf6;
+}
+
+.title-icon.pulse {
+  color: #3b82f6;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.card-loading,
+.card-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+/* Novel List */
+.novel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.novel-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.novel-item:hover {
+  background: var(--app-surface-subtle);
+}
+
+.novel-cover {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: white;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.novel-info {
+  flex: 1;
   min-width: 0;
 }
 
-.guidance-copy h2 {
-  margin: 4px 0 7px;
-  color: var(--app-text-primary);
-  font-family: var(--font-serif);
-  font-size: 17px;
-  font-weight: 650;
-}
-
-.guidance-copy p {
-  margin: 0;
-  color: var(--app-text-muted);
-  font-size: 11px;
-  line-height: 1.65;
-}
-
-.guidance-tags {
+.novel-title-row {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.novel-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--app-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.novel-meta {
+  font-size: 12px;
+  color: var(--app-text-muted);
+  display: flex;
+  align-items: center;
   gap: 6px;
-  margin-top: 10px;
 }
 
-.guidance-tags span {
-  padding: 3px 7px;
-  color: var(--app-text-secondary);
+.novel-arrow {
+  color: var(--app-text-muted);
+  flex-shrink: 0;
+}
+
+/* AI Reminders */
+.ai-card {
+  background: linear-gradient(180deg, rgba(139, 92, 246, 0.03) 0%, var(--app-surface) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.1);
+}
+
+.reminder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.reminder-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
   background: var(--app-surface-subtle);
-  border: 1px solid var(--app-border);
-  border-radius: 999px;
-  font-size: 9px;
+  cursor: pointer;
+  transition: all 0.18s ease;
 }
 
-.guidance-action {
-  z-index: 1;
+.reminder-item:hover {
+  background: var(--color-brand-light);
 }
 
-@media (max-width: 1080px) {
-  .command-hero {
-    grid-template-columns: minmax(0, 1.3fr) minmax(290px, 0.8fr);
-  }
+.reminder-icon-wrap {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
 
-  .hero-copy {
-    padding: 36px;
-  }
+.reminder-item.warning .reminder-icon-wrap {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--color-warning);
+}
 
-  .metrics-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.reminder-item.info .reminder-icon-wrap {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--color-info);
+}
 
-  .secondary-grid {
+.reminder-item.success .reminder-icon-wrap {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--color-success);
+}
+
+.reminder-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.reminder-text {
+  flex: 1;
+  font-size: 13px;
+  color: var(--app-text-secondary);
+  line-height: 1.5;
+}
+
+.reminder-arrow {
+  color: var(--app-text-muted);
+  flex-shrink: 0;
+}
+
+.ai-suggestion {
+  padding-top: 16px;
+  border-top: 1px solid var(--app-divider);
+}
+
+.suggestion-title {
+  font-size: 12px;
+  color: var(--app-text-muted);
+  margin-bottom: 10px;
+}
+
+.suggestion-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Generating */
+.task-card {
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.03) 0%, var(--app-surface) 100%);
+}
+
+.generating-item {
+  padding: 4px 0;
+}
+
+.gen-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.gen-novel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--app-text-primary);
+}
+
+.gen-chapter {
+  font-size: 12px;
+  color: var(--app-text-muted);
+}
+
+.gen-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gen-progress > :deep(.n-progress) {
+  flex: 1;
+}
+
+.gen-eta {
+  font-size: 11px;
+  color: var(--app-text-muted);
+  white-space: nowrap;
+}
+
+/* Activity */
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  font-size: 13px;
+}
+
+.activity-time {
+  font-size: 11px;
+  color: var(--app-text-muted);
+  min-width: 48px;
+  flex-shrink: 0;
+}
+
+.activity-text {
+  color: var(--app-text-secondary);
+  flex: 1;
+}
+
+@media (max-width: 1100px) {
+  .hero-section {
     grid-template-columns: 1fr;
   }
-}
 
-@media (max-width: 820px) {
-  .dashboard {
-    padding: 18px;
+  .main-grid {
+    grid-template-columns: 1fr 1fr;
   }
 
-  .command-hero,
-  .primary-grid {
+  .col-right {
+    grid-column: span 2;
+    flex-direction: row;
+    gap: 16px;
+  }
+
+  .col-right .section-card {
+    flex: 1;
+  }
+
+  .task-card {
+    margin-bottom: 0 !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-inner {
+    padding: 20px 16px;
+  }
+
+  .hero-main {
+    padding: 28px 24px;
+  }
+
+  .greeting-title {
+    font-size: 24px;
+  }
+
+  .goal-current {
+    font-size: 28px;
+  }
+
+  .main-grid {
     grid-template-columns: 1fr;
   }
 
-  .hero-status {
-    min-height: 230px;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    border-left: 0;
-  }
-
-  .empty-state {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .empty-state > :last-child {
-    grid-column: 2;
-    justify-self: start;
-  }
-}
-
-@media (max-width: 560px) {
-  .dashboard {
-    padding: 12px;
-  }
-
-  .command-hero,
-  .surface-panel,
-  .metric-card {
-    border-radius: 14px;
-  }
-
-  .hero-copy,
-  .hero-status,
-  .progress-panel,
-  .trend-panel,
-  .quick-panel,
-  .guidance-panel {
-    padding: 20px;
-  }
-
-  .hero-title {
-    font-size: 32px;
-  }
-
-  .hero-eyebrow > span:last-child {
-    display: none;
-  }
-
-  .hero-actions {
-    align-items: stretch;
+  .col-right {
+    grid-column: span 1;
     flex-direction: column;
+    gap: 16px;
   }
 
-  .metrics-grid,
-  .quick-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .empty-state {
-    grid-template-columns: 1fr;
-    justify-items: start;
-    padding: 20px;
-  }
-
-  .empty-state > :last-child {
-    grid-column: 1;
-  }
-
-  .panel-header {
-    align-items: flex-start;
-  }
-
-  .guidance-panel {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .guidance-action {
-    grid-column: 2;
-    justify-self: start;
+  .task-card {
+    margin-bottom: 0 !important;
   }
 }
 </style>

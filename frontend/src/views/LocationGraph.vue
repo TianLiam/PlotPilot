@@ -1,18 +1,16 @@
 <template>
   <div class="location-graph-page">
-    <n-page-header @back="handleBack" title="地点关系图">
-      <template #extra>
-        <n-space>
-          <n-button type="primary" @click="openTriplesDrawer()">三元组表格</n-button>
-          <n-button @click="handleRefresh" :loading="loading">
-            <template #icon>
-              <n-icon><RefreshOutline /></n-icon>
-            </template>
-            刷新
-          </n-button>
-        </n-space>
-      </template>
-    </n-page-header>
+    <div class="graph-toolbar">
+      <n-space>
+        <n-button type="primary" @click="openTriplesDrawer()">三元组表格</n-button>
+        <n-button @click="handleRefresh" :loading="loading">
+          <template #icon>
+            <n-icon><RefreshOutline /></n-icon>
+          </template>
+          刷新
+        </n-button>
+      </n-space>
+    </div>
 
     <div class="graph-body">
       <div class="graph-main">
@@ -100,9 +98,8 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import {
-  NPageHeader,
   NButton,
   NSpace,
   NIcon,
@@ -127,7 +124,6 @@ import {
 } from '@/domain/knowledge'
 
 const route = useRoute()
-const router = useRouter()
 const loading = ref(false)
 const activeTab = ref<'node'>('node')
 
@@ -148,11 +144,7 @@ interface LocationNode extends EChartsNode {
 
 const selectedNode = ref<LocationNode | null>(null)
 
-const novelId = computed(() => route.params.slug as string)
-
-const handleBack = () => {
-  router.push(`/book/${novelId.value}/workbench`)
-}
+const novelId = computed(() => route.params.novelId as string)
 
 const handleRefresh = () => {
   window.location.reload()
@@ -188,10 +180,16 @@ const importanceTagType = (importance: string) => {
 
 <style scoped>
 .location-graph-page {
-  height: 100vh;
+  height: calc(100vh - 48px);
   display: flex;
   flex-direction: column;
   background: var(--app-page-bg);
+}
+
+.graph-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 16px 0;
 }
 
 .graph-body {

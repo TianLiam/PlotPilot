@@ -170,7 +170,7 @@ const message = useMessage()
 const DEFAULT_CONVERGE = 0.75
 const DEFAULT_LAND = 0.92
 
-const novelSlug = computed(() => String(route.params.slug ?? '').trim())
+const novelSlug = computed(() => String(route.params.novelId ?? '').trim())
 
 const loading = ref(false)
 const novelTitle = ref('')

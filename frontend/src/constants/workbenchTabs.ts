@@ -25,7 +25,12 @@ export const REFERENCE_TABS: TabMeta[] = [
   { name: 'props',         label: '手稿道具', icon: 'BriefcaseOutline' },
 ]
 
-export const ALL_TABS: TabMeta[] = [...WRITING_TABS, ...REFERENCE_TABS]
+/** AI 分析组：实时质量分析与建议 */
+export const AI_TABS: TabMeta[] = [
+  { name: 'inspector', label: 'AI Inspector', icon: 'SparklesOutline', badgeKey: 'riskCount' },
+]
+
+export const ALL_TABS: TabMeta[] = [...WRITING_TABS, ...REFERENCE_TABS, ...AI_TABS]
 
 export const ALL_TAB_NAMES = new Set(ALL_TABS.map(t => t.name))
 
@@ -49,8 +54,10 @@ export function resolveTabName(panel: string | undefined): string {
   return LEGACY_TAB_MAP[panel] ?? 'narrative-brief'
 }
 
-export type TabGroup = 'writing' | 'reference'
+export type TabGroup = 'writing' | 'reference' | 'ai'
 
 export function tabGroup(name: string): TabGroup {
-  return WRITING_TABS.some(t => t.name === name) ? 'writing' : 'reference'
+  if (WRITING_TABS.some(t => t.name === name)) return 'writing'
+  if (AI_TABS.some(t => t.name === name)) return 'ai'
+  return 'reference'
 }

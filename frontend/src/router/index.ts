@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 const AppLayout = () => import('../layouts/AppLayout.vue')
+const BookLayout = () => import('../layouts/BookLayout.vue')
 
 const Dashboard = () => import('../views/Dashboard.vue')
 const Home = () => import('../views/Home.vue')
@@ -18,6 +19,9 @@ const DeconstructionDetail = () => import('../views/DeconstructionDetail.vue')
 const PipelineMonitor = () => import('../views/PipelineMonitor.vue')
 const Library = () => import('../views/Library.vue')
 const Studio = () => import('../views/Studio.vue')
+
+const BookOverview = () => import('../views/book/BookOverview.vue')
+const PagePlaceholder = () => import('../components/common/PagePlaceholder.vue')
 
 const CharacterSchedulerSimulator = () =>
   import('../components/debug/CharacterSchedulerSimulator.vue')
@@ -89,6 +93,84 @@ const router = createRouter({
           redirect: '/dashboard',
           meta: { hidden: true },
         },
+        {
+          path: 'book/:novelId',
+          component: BookLayout,
+          redirect: (to) => `/book/${to.params.novelId}/overview`,
+          children: [
+            {
+              path: 'overview',
+              name: 'BookOverview',
+              component: BookOverview,
+              meta: { title: '作品概览' },
+            },
+            {
+              path: 'workbench',
+              name: 'Workbench',
+              component: Workbench,
+              meta: { title: '工作台' },
+            },
+            {
+              path: 'outline',
+              name: 'BookOutline',
+              component: PagePlaceholder,
+              props: { title: '大纲管理', description: '可视化故事线、剧情分支与汇合点管理功能即将上线...' },
+              meta: { title: '大纲' },
+            },
+            {
+              path: 'characters',
+              name: 'BookCharacters',
+              component: Cast,
+              meta: { title: '人物' },
+            },
+            {
+              path: 'character-graph',
+              name: 'BookCharacterGraph',
+              component: CharacterGraph,
+              meta: { title: '人物图谱' },
+            },
+            {
+              path: 'world',
+              name: 'BookWorld',
+              component: PagePlaceholder,
+              props: { title: '世界观', description: '世界设定、地点图谱、势力格局等世界观管理功能即将上线...' },
+              meta: { title: '世界观' },
+            },
+            {
+              path: 'location-graph',
+              name: 'BookLocationGraph',
+              component: LocationGraph,
+              meta: { title: '地点图谱' },
+            },
+            {
+              path: 'timeline',
+              name: 'BookTimeline',
+              component: PagePlaceholder,
+              props: { title: '时间线', description: '故事时间轴、事件序列、因果链追溯功能即将上线...' },
+              meta: { title: '时间线' },
+            },
+            {
+              path: 'analytics',
+              name: 'BookAnalytics',
+              component: PagePlaceholder,
+              props: { title: '数据分析', description: '张力曲线、文风分析、人物活跃度、节奏统计等数据分析功能即将上线...' },
+              meta: { title: '数据分析' },
+            },
+            {
+              path: 'settings',
+              name: 'BookSettings',
+              component: PagePlaceholder,
+              props: { title: '作品设置', description: '小说基础信息、生成配置、高级设置等功能即将上线...' },
+              meta: { title: '作品设置' },
+            },
+            {
+              path: 'chapter/:id',
+              name: 'Chapter',
+              component: Chapter,
+              meta: { title: '章节详情' },
+            },
+          ],
+        },
       ],
     },
     {
@@ -96,11 +178,6 @@ const router = createRouter({
       name: 'Home',
       component: Home,
     },
-    { path: '/book/:slug/workbench', name: 'Workbench', component: Workbench },
-    { path: '/book/:slug/cast', name: 'Cast', component: Cast },
-    { path: '/book/:slug/chapter/:id', name: 'Chapter', component: Chapter },
-    { path: '/book/:slug/characters', name: 'CharacterGraph', component: CharacterGraph },
-    { path: '/book/:slug/location-graph', name: 'LocationGraph', component: LocationGraph },
     {
       path: '/debug/scheduler',
       name: 'CharacterSchedulerSimulator',

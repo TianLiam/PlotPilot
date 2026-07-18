@@ -144,6 +144,26 @@
         />
       </n-tab-pane>
     </n-tabs>
+
+    <!-- AI 分析组：实时质量分析与建议 -->
+    <n-tabs
+      v-show="activeGroup === 'ai'"
+      v-model:value="activeAiTab"
+      type="line"
+      size="small"
+      class="settings-tabs"
+      :tabs-padding="4"
+      @update:value="onTabActivated"
+    >
+      <n-tab-pane name="inspector" display-directive="show">
+        <template #tab>
+          <span class="tab-label">
+            <n-icon size="13" class="tab-icon"><SparklesOutline /></n-icon>AI Inspector
+          </span>
+        </template>
+        <AIInspectorPanel v-if="visited.has('inspector')" :slug="slug" />
+      </n-tab-pane>
+    </n-tabs>
   </div>
 </template>
 
@@ -170,10 +190,12 @@ const ForeshadowLedgerPanel = defineAsyncComponent(() => import('./ForeshadowLed
 const CharacterDialoguePanel = defineAsyncComponent(() => import('./CharacterDialoguePanel.vue'))
 const CurrentChapterContextPanel = defineAsyncComponent(() => import('./CurrentChapterContextPanel.vue'))
 const NarrativeDashboardPanel = defineAsyncComponent(() => import('./NarrativeDashboardPanel.vue'))
+const AIInspectorPanel = defineAsyncComponent(() => import('./AIInspectorPanel.vue'))
 
 const TAB_GROUPS = [
   { value: 'writing' as TabGroup,   label: '写作支撑' },
   { value: 'reference' as TabGroup, label: '作品基础' },
+  { value: 'ai' as TabGroup,        label: 'AI 分析' },
 ]
 
 interface Chapter {
@@ -207,12 +229,15 @@ const initialGroup = tabGroup(initialTab)
 const activeGroup = ref<TabGroup>(initialGroup)
 const activeWritingTab = ref(initialGroup === 'writing' ? initialTab : 'narrative-brief')
 const activeReferenceTab = ref(initialGroup === 'reference' ? initialTab : 'bible')
+const activeAiTab = ref(initialGroup === 'ai' ? initialTab : 'inspector')
 const visited = reactive(new Set<string>([initialTab]))
 const pendingForeshadowCount = ref(0)
 
-const activeTab = computed(() =>
-  activeGroup.value === 'writing' ? activeWritingTab.value : activeReferenceTab.value
-)
+const activeTab = computed(() => {
+  if (activeGroup.value === 'writing') return activeWritingTab.value
+  if (activeGroup.value === 'ai') return activeAiTab.value
+  return activeReferenceTab.value
+})
 
 function switchGroup(group: TabGroup) {
   activeGroup.value = group
@@ -233,6 +258,8 @@ function onJumpTab(tabName: string) {
   activeGroup.value = group
   if (group === 'writing') {
     activeWritingTab.value = target
+  } else if (group === 'ai') {
+    activeAiTab.value = target
   } else {
     activeReferenceTab.value = target
   }
@@ -246,6 +273,8 @@ watch(() => props.currentPanel, (newVal) => {
   activeGroup.value = group
   if (group === 'writing') {
     activeWritingTab.value = target
+  } else if (group === 'ai') {
+    activeAiTab.value = target
   } else {
     activeReferenceTab.value = target
   }

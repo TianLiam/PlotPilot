@@ -271,7 +271,7 @@ const storyNodeId = ref<string | null>(null)
 const revokeAllLoading = ref(false)
 const revokingId = ref<string | null>(null)
 
-const slug = route.params.slug as string
+const slug = route.params.novelId as string
 const chapterId = computed(() => {
   const id = Number(route.params.id as string)
   if (isNaN(id) || id <= 0) {
