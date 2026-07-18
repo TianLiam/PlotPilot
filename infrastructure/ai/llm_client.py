@@ -4,6 +4,7 @@ from typing import AsyncIterator
 from domain.ai.services.llm_service import DEFAULT_MAX_OUTPUT_TOKENS, GenerationConfig
 from domain.ai.value_objects.prompt import Prompt
 from infrastructure.ai.provider_factory import DynamicLLMService
+from infrastructure.ai.providers.mock_provider import MockProvider
 
 
 class LLMClient:
@@ -35,9 +36,16 @@ class LLMClient:
         Returns:
             生成的文本
         """
+        if kwargs.get("require_real_provider"):
+            using_mock = isinstance(self.provider, MockProvider)
+            if isinstance(self.provider, DynamicLLMService):
+                using_mock = await self.provider.is_using_mock()
+            if using_mock:
+                raise RuntimeError("市场 AI 分析需要先配置可用的真实 LLM 提供者")
+
         # 创建 Prompt 对象
         prompt_obj = Prompt(
-            system="你是一个专业的小说创作助手。",
+            system=kwargs.get("system_prompt", "你是一个专业的小说创作助手。"),
             user=prompt
         )
 
@@ -57,7 +65,7 @@ class LLMClient:
         # 如果是字符串，转换为 Prompt 对象
         if isinstance(prompt, str):
             prompt_obj = Prompt(
-                system="你是一个专业的小说创作助手。",
+                system=kwargs.get("system_prompt", "你是一个专业的小说创作助手。"),
                 user=prompt
             )
         else:

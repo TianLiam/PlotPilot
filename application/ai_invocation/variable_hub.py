@@ -525,12 +525,6 @@ class VariableResolver:
                 aliases.setdefault(public_alias, aliases[alias])
                 raw_aliases.setdefault(public_alias, raw_aliases.get(alias, aliases[alias]))
                 lineage.setdefault(public_alias, lineage.get(alias, "alias"))
-                if alias in resolved_from_hub:
-                    resolved_from_hub.add(public_alias)
-                    snapshot_values.setdefault(
-                        public_alias,
-                        snapshot_values.get(alias, raw_aliases.get(alias, aliases[alias])),
-                    )
 
         for alias, value in aliases.items():
             binding = binding_by_alias.get(alias)
@@ -544,7 +538,7 @@ class VariableResolver:
             definition = self._repository.get_definition(binding.variable_key) if binding and binding.variable_key else None
             snapshot_items.append(
                 self._snapshot_item(
-                    alias,
+                    self._snapshot_public_alias(alias),
                     snapshot_value,
                     binding,
                     "variable_hub",
@@ -552,6 +546,9 @@ class VariableResolver:
                 )
             )
 
+        # The snapshot is also an audit view of all persistent facts visible in
+        # the invocation context. Canonical variable keys already represented
+        # by a binding are de-duplicated by _append_context_snapshot_items.
         self._append_context_snapshot_items(snapshot_items, context_key)
 
         snapshot_groups = self._snapshot_groups(snapshot_items)
@@ -595,6 +592,15 @@ class VariableResolver:
         return ""
 
     @staticmethod
+    def _snapshot_public_alias(alias: str) -> str:
+        """Use the public setup alias while retaining the canonical variable_key."""
+        if alias.startswith("novel.setup."):
+            return alias.removeprefix("novel.setup.")
+        if alias.startswith("novel.") and alias.count(".") == 1:
+            return alias.removeprefix("novel.")
+        return alias
+
+    @staticmethod
     def _snapshot_item(
         alias: str,
         value: Any,
@@ -604,13 +610,23 @@ class VariableResolver:
         display_name: str,
     ) -> dict[str, Any]:
         variable_key = binding.variable_key if binding else alias
+        inferred_scope = VariableResolver._infer_scope(variable_key)
+        inferred_stage = VariableResolver._infer_stage(variable_key)
         return {
             "key": alias,
             "display_name": display_name,
             "value": value,
             "type": VariableResolver._infer_type(value),
-            "scope": binding.scope if binding and binding.scope else VariableResolver._infer_scope(variable_key),
-            "stage": binding.stage if binding and binding.stage else VariableResolver._infer_stage(variable_key),
+            "scope": (
+                binding.scope
+                if binding and binding.scope not in ("", "runtime")
+                else inferred_scope
+            ),
+            "stage": (
+                binding.stage
+                if binding and binding.stage not in ("", "runtime")
+                else inferred_stage
+            ),
             "source": "variable_hub" if lineage == "variable_hub" else (binding.source if binding and binding.source else lineage),
             "variable_key": variable_key,
             "required": bool(binding.required) if binding else False,

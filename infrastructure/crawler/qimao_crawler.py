@@ -1,7 +1,9 @@
 import logging
-import json
+import re
 from typing import List, Dict, Any
 from datetime import datetime
+
+from lxml import html as lxml_html
 
 from infrastructure.crawler.base_crawler import BaseCrawler
 
@@ -10,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 class QimaoCrawler(BaseCrawler):
     BASE_URL = "https://www.qimao.com"
-    RANKING_API = "https://www.qimao.com/api/rank/list"
+    RANKING_PAGE = "https://www.qimao.com/paihang"
 
     CATEGORIES = {
         "都市": {"cat_id": 1},
@@ -25,68 +27,83 @@ class QimaoCrawler(BaseCrawler):
         "军事": {"cat_id": 10},
     }
 
-    async def crawl_ranking(self, category: str, limit: int = 20) -> List[Dict[str, Any]]:
-        results = []
-        category_info = self.CATEGORIES.get(category)
-        if not category_info:
-            logger.warning(f"Unknown category: {category}")
-            return results
-
+    async def _crawl_page(self, limit: int = 30) -> List[Dict[str, Any]]:
+        results: List[Dict[str, Any]] = []
         try:
-            params = {
-                "cat_id": category_info["cat_id"],
-                "page": 1,
-                "page_size": limit,
-            }
-
             headers = self._get_default_headers(referer=self.BASE_URL)
-            response = await self.safe_request("get", self.RANKING_API, params=params, headers=headers)
-            
+            response = await self.safe_request("get", self.RANKING_PAGE, headers=headers, max_retries=2)
             if response is None:
                 return results
 
-            data = response.json()
-            
-            if data.get("code") != 200 or not data.get("data"):
-                logger.warning(f"Qimao API returned error: {data}")
-                return results
+            document = lxml_html.fromstring(response.content.decode("utf-8", errors="replace"))
+            items = document.find_class("rank-list-item")
+            for fallback_rank, item in enumerate(items[:limit], 1):
+                title_nodes = item.find_class("s-book-title")
+                info_nodes = item.find_class("s-book-info")
+                if not title_nodes or not info_nodes:
+                    continue
 
-            books = data["data"].get("list", [])
-            for rank, book in enumerate(books, 1):
+                title_node = title_nodes[0]
+                info_links = info_nodes[0].xpath(".//a")
+                info_em = [self.clean_text(node.text_content()) for node in info_nodes[0].xpath(".//em")]
+                url = title_node.get("href") or ""
+                book_id_match = re.search(r"/shuku/(\d+)/", url)
+                category = self.clean_text(info_links[1].text_content()) if len(info_links) > 1 else ""
+                subcategory = self.clean_text(info_links[2].text_content()) if len(info_links) > 2 else ""
+                word_text = next((value for value in info_em if "字" in value), "")
+                rank_nodes = item.xpath(".//*[contains(concat(' ', normalize-space(@class), ' '), ' rank-number ')]")
+                popularity_nodes = item.find_class("rank-num")
+                unit_nodes = item.find_class("rank-unit")
+                rank = self.parse_int(rank_nodes[0].text_content(), fallback_rank) if rank_nodes else fallback_rank
+                popularity_text = "".join([
+                    popularity_nodes[0].text_content() if popularity_nodes else "",
+                    unit_nodes[0].text_content() if unit_nodes else "",
+                ])
+                author = self.clean_text(info_links[0].text_content()) if info_links else ""
+                intro_nodes = item.find_class("s-book-intro")
                 result = {
                     "platform": "qimao",
                     "category": category,
                     "rank": rank,
-                    "novel_name": self.clean_text(book.get("book_name")),
-                    "author": self.clean_text(book.get("author_name")),
-                    "description": self.clean_text(book.get("intro")),
-                    "tags": ",".join(book.get("tags", [])),
-                    "word_count": self.parse_int(book.get("word_count")),
-                    "popularity": self.parse_int(book.get("hot_value")),
-                    "score": self.parse_float(book.get("score", 0)),
-                    "comments": self.parse_int(book.get("comment_count")),
-                    "favorites": self.parse_int(book.get("collect_count")),
+                    "novel_name": self.clean_text(title_node.text_content()),
+                    "author": author,
+                    "description": self.clean_text(intro_nodes[0].text_content()) if intro_nodes else "",
+                    "tags": ",".join(filter(None, [category, subcategory])),
+                    "word_count": self.parse_int(word_text),
+                    "popularity": self.parse_int(popularity_text),
+                    "score": 0.0,
+                    "comments": 0,
+                    "favorites": 0,
                     "collected_at": datetime.utcnow(),
                     "extra_data": {
-                        "source": "qimao_api",
-                        "book_id": book.get("book_id"),
-                        "url": f"{self.BASE_URL}/book/{book.get('book_id')}",
+                        "source": "qimao_html",
+                        "book_id": book_id_match.group(1) if book_id_match else "",
+                        "subcategory": subcategory,
+                        "ranking_metric": "heat",
+                        "url": url,
                     },
                 }
                 results.append(result)
 
-            logger.info(f"Crawled {len(results)} novels from Qimao category: {category}")
+            if not results:
+                self.last_error = "Qimao ranking page did not contain valid rank-list-item entries"
+            logger.info(f"Crawled {len(results)} novels from Qimao ranking page")
             await self._delay()
 
         except Exception as e:
-            logger.error(f"Failed to crawl Qimao ranking for {category}: {e}")
+            self.last_error = f"{type(e).__name__}: {e}"
+            logger.error(f"Failed to crawl Qimao ranking page: {e}")
 
         return results
 
+    async def crawl_ranking(self, category: str, limit: int = 20) -> List[Dict[str, Any]]:
+        if category not in self.CATEGORIES:
+            logger.warning(f"Unknown category: {category}")
+            return []
+        results = await self._crawl_page(max(limit, 30))
+        return [item for item in results if item.get("category") == category][:limit]
+
     async def crawl_all_categories(self, limit: int = 20) -> List[Dict[str, Any]]:
-        all_results = []
-        for category in self.CATEGORIES.keys():
-            results = await self.crawl_ranking(category, limit)
-            all_results.extend(results)
+        all_results = await self._crawl_page(limit)
         logger.info(f"Total crawled {len(all_results)} novels from Qimao")
         return all_results

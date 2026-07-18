@@ -136,6 +136,10 @@ class DynamicLLMService(LLMService):
         )
         return provider
 
+    async def is_using_mock(self) -> bool:
+        """Return whether the currently active runtime provider is the local mock."""
+        return isinstance(await self._resolve_provider(), MockProvider)
+
     async def _close_cached_provider(self) -> None:
         """关闭旧 Provider 的 HTTP 连接资源。"""
         old = self._cached_provider

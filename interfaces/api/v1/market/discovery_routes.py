@@ -1,5 +1,5 @@
 """动态模板发现API路由"""
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List, Optional
 from pydantic import BaseModel, Field
 import logging
@@ -23,18 +23,22 @@ def get_ranking_repo():
 def get_template_repo():
     return SqliteDynamicTemplateRepository(get_database())
 
-def get_discovery_service(
+async def get_discovery_service(
     ranking_repo = Depends(get_ranking_repo),
     template_repo = Depends(get_template_repo),
 ):
-    return TemplateDiscoveryService(ranking_repo, template_repo)
+    service = TemplateDiscoveryService(ranking_repo, template_repo)
+    try:
+        yield service
+    finally:
+        await service.close()
 
 
 # ── 请求/响应模型 ──
 
 class DiscoveryRequest(BaseModel):
     """发现请求"""
-    platform: str = Field(default="fanqie", description="平台：fanqie, qidian")
+    platform: str = Field(default="qidian", description="平台：qidian, fanqie")
     category: Optional[str] = Field(default=None, description="分类：都市、玄幻等")
     top_n: int = Field(default=5, ge=1, le=20, description="分析前N本小说")
     max_chapters: int = Field(default=20, ge=5, le=50, description="每本最大章节数")
@@ -42,7 +46,7 @@ class DiscoveryRequest(BaseModel):
 
 class DailyDiscoveryRequest(BaseModel):
     """每日发现请求"""
-    platforms: List[str] = Field(default=["fanqie"], description="平台列表")
+    platforms: List[str] = Field(default=["qidian"], description="平台列表")
     categories: List[str] = Field(default=["都市", "玄幻", "言情", "仙侠"], description="分类列表")
     top_n: int = Field(default=3, ge=1, le=10, description="每个分类分析前N本")
 
@@ -71,10 +75,9 @@ class TemplateResponse(BaseModel):
 @router.post("/run", summary="运行模板发现")
 async def run_discovery(
     request: DiscoveryRequest,
-    background_tasks: BackgroundTasks,
     service: TemplateDiscoveryService = Depends(get_discovery_service),
 ):
-    """运行模板发现任务（后台执行）
+    """运行模板发现任务并返回真实执行结果。
     
     从热门小说中自动发现模板。
     
@@ -84,53 +87,36 @@ async def run_discovery(
     3. AI分析提取模板
     4. 保存到模板库
     """
-    async def run_task():
-        try:
-            result = await service.discover_from_top_novels(
-                platform=request.platform,
-                category=request.category,
-                top_n=request.top_n,
-                max_chapters=request.max_chapters,
-            )
-            logger.info(f"Discovery completed: {result}")
-        except Exception as e:
-            logger.error(f"Discovery task failed: {e}")
-    
-    background_tasks.add_task(run_task)
-    
-    return {
-        "message": "Discovery task started in background",
-        "params": request.dict(),
-    }
+    result = await service.discover_from_top_novels(
+        platform=request.platform,
+        category=request.category,
+        top_n=request.top_n,
+        max_chapters=request.max_chapters,
+    )
+    result["status"] = "success" if not result.get("errors") else (
+        "partial" if result.get("analyzed_novels") else "failed"
+    )
+    return result
 
 
 @router.post("/daily", summary="每日自动发现")
 async def run_daily_discovery(
     request: DailyDiscoveryRequest,
-    background_tasks: BackgroundTasks,
     service: TemplateDiscoveryService = Depends(get_discovery_service),
 ):
-    """运行每日自动发现任务（后台执行）
+    """运行每日自动发现任务并返回真实执行结果。
     
     扫描多个平台和分类，从热门小说中发现模板。
     """
-    async def run_task():
-        try:
-            result = await service.run_daily_discovery(
-                platforms=request.platforms,
-                categories=request.categories,
-                top_n=request.top_n,
-            )
-            logger.info(f"Daily discovery completed: {result}")
-        except Exception as e:
-            logger.error(f"Daily discovery task failed: {e}")
-    
-    background_tasks.add_task(run_task)
-    
-    return {
-        "message": "Daily discovery task started in background",
-        "params": request.dict(),
-    }
+    result = await service.run_daily_discovery(
+        platforms=request.platforms,
+        categories=request.categories,
+        top_n=request.top_n,
+    )
+    result["status"] = "success" if result.get("total_errors", 0) == 0 else (
+        "partial" if result.get("total_templates_saved", 0) else "failed"
+    )
+    return result
 
 
 @router.get("/templates", response_model=List[TemplateResponse], summary="获取发现的模板")

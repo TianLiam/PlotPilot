@@ -3,6 +3,7 @@ import logging
 from typing import Any, Dict, List
 
 from fastapi import FastAPI, Request, status
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
@@ -42,31 +43,45 @@ async def http_exception_handler(request: Request, exc) -> JSONResponse:
         JSONResponse with unified error format
     """
     status_code = exc.status_code
-    detail = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
+    raw_detail = exc.detail
+    if isinstance(raw_detail, str):
+        message = raw_detail
+        details = None
+    elif isinstance(raw_detail, dict):
+        message = str(
+            raw_detail.get("message")
+            or raw_detail.get("detail")
+            or f"HTTP {status_code}"
+        )
+        details = raw_detail
+    else:
+        message = str(raw_detail)
+        details = raw_detail
 
     # Map status code to error code, use generic if not found
     error_code = STATUS_CODE_MAP.get(status_code, "HTTP_ERROR")
 
     # Log the error at appropriate level
     if status_code >= 500:
-        logger.error(f"HTTP {status_code} - {detail}")
+        logger.error(f"HTTP {status_code} - {message}")
     elif status_code >= 400:
-        logger.warning(f"HTTP {status_code} - {detail}")
+        logger.warning(f"HTTP {status_code} - {message}")
     else:
-        logger.info(f"HTTP {status_code} - {detail}")
+        logger.info(f"HTTP {status_code} - {message}")
 
     error_response = ErrorResponse(
-        message=detail,
-        code=error_code
+        message=message,
+        code=error_code,
+        details=details,
     )
 
     content = error_response.model_dump()
     # Keep FastAPI's traditional HTTPException shape available for legacy clients.
-    content["detail"] = detail
+    content["detail"] = raw_detail
 
     return JSONResponse(
         status_code=status_code,
-        content=content
+        content=jsonable_encoder(content)
     )
 
 

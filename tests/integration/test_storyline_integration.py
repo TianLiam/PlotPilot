@@ -1,31 +1,39 @@
 import pytest
-import tempfile
-import shutil
-from pathlib import Path
 from domain.novel.value_objects.novel_id import NovelId
 from domain.novel.value_objects.storyline_type import StorylineType
 from domain.novel.value_objects.storyline_status import StorylineStatus
 from domain.novel.value_objects.storyline_milestone import StorylineMilestone
 from domain.novel.services.storyline_manager import StorylineManager
-from infrastructure.persistence.repositories.file_storyline_repository import FileStorylineRepository
-from infrastructure.persistence.storage.file_storage import FileStorage
+from infrastructure.persistence.database.connection import DatabaseConnection
+from infrastructure.persistence.database.sqlite_storyline_repository import SqliteStorylineRepository
 
 
 class TestStorylineIntegration:
     """故事线管理系统集成测试"""
 
     @pytest.fixture
-    def temp_dir(self):
-        """创建临时目录"""
-        temp_dir = tempfile.mkdtemp()
-        yield temp_dir
-        shutil.rmtree(temp_dir)
+    def database(self, tmp_path):
+        """创建隔离的当前 SQLite 持久化栈。"""
+        database = DatabaseConnection(str(tmp_path / "storylines.db"))
+        for novel_id in (
+            "novel-123",
+            "novel-456",
+            "novel-789",
+            "novel-delete",
+            "novel-validation",
+        ):
+            database.execute(
+                "INSERT INTO novels (id, title, slug, target_chapters) VALUES (?, ?, ?, ?)",
+                (novel_id, novel_id, novel_id, 50),
+            )
+        database.commit()
+        yield database
+        database.close_all()
 
     @pytest.fixture
-    def storyline_manager(self, temp_dir):
+    def storyline_manager(self, database):
         """创建故事线管理器"""
-        storage = FileStorage(temp_dir)
-        repository = FileStorylineRepository(storage)
+        repository = SqliteStorylineRepository(database)
         return StorylineManager(repository)
 
     def test_create_and_retrieve_storyline(self, storyline_manager):

@@ -1,5 +1,6 @@
 """趋势分析服务 - 分析历史数据并生成趋势预测"""
 import logging
+from collections import Counter
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional, Tuple
 from statistics import mean, stdev
@@ -76,6 +77,7 @@ class TrendAnalysisService:
                 word_count=item.get("word_count") or item.get("wordCount", 0),
                 popularity=item.get("popularity") or item.get("totalRead", 0),
                 score=item.get("score", 0.0),
+                tags=list(item.get("tags") or []),
             ))
         
         snapshot = RankingSnapshot(
@@ -90,6 +92,46 @@ class TrendAnalysisService:
         logger.info(f"Saved snapshot: {today} {platform}/{category} - {len(snapshot_items)} items")
         
         return snapshot
+
+    async def save_crawl_snapshots(self, rankings_by_platform: Dict[str, List[Any]]) -> int:
+        """Persist verified crawler entities as today's per-category snapshots."""
+        saved_count = 0
+        for platform, rankings in rankings_by_platform.items():
+            rankings_by_category: Dict[str, List[Any]] = {}
+            for item in rankings:
+                category = str(getattr(item, "category", "") or "").strip()
+                if category:
+                    rankings_by_category.setdefault(category, []).append(item)
+
+            for category, category_items in rankings_by_category.items():
+                snapshot_items = []
+                for item in sorted(
+                    category_items,
+                    key=lambda value: int(getattr(value, "rank", 0) or 0),
+                )[:50]:
+                    raw_tags = getattr(item, "tags", "") or ""
+                    tags = (
+                        [str(tag).strip() for tag in raw_tags if str(tag).strip()]
+                        if isinstance(raw_tags, list)
+                        else [tag.strip() for tag in str(raw_tags).split(",") if tag.strip()]
+                    )
+                    extra_data = getattr(item, "extra_data", {}) or {}
+                    snapshot_items.append(
+                        {
+                            "novel_id": str(extra_data.get("book_id") or getattr(item, "id", "")),
+                            "novel_name": getattr(item, "novel_name", ""),
+                            "author": getattr(item, "author", ""),
+                            "rank": int(getattr(item, "rank", 0) or 0),
+                            "word_count": int(getattr(item, "word_count", 0) or 0),
+                            "popularity": int(getattr(item, "popularity", 0) or 0),
+                            "score": float(getattr(item, "score", 0.0) or 0.0),
+                            "tags": tags,
+                        }
+                    )
+                if snapshot_items:
+                    await self.save_daily_snapshot(platform, category, snapshot_items)
+                    saved_count += 1
+        return saved_count
     
     async def analyze_genre_trend(
         self,
@@ -437,4 +479,94 @@ class TrendAnalysisService:
             "days": days,
             "data_points": history_points,
             "trend": trend.to_dict() if trend else None,
+        }
+
+    async def get_dashboard(self, days: int = 30) -> Dict[str, Any]:
+        """Build the trend dashboard exclusively from persisted daily snapshots."""
+        series = await self.snapshot_repo.list_ranking_series(days)
+        if not series:
+            return {
+                "days": days,
+                "data_state": "empty",
+                "snapshot_count": 0,
+                "series_count": 0,
+                "rising": [],
+                "declining": [],
+                "hot": [],
+                "line_series": [],
+                "heatmap": [],
+                "hot_tags": [],
+            }
+
+        trend_rows: List[Dict[str, Any]] = []
+        heatmap: List[Dict[str, Any]] = []
+        tag_counter: Counter = Counter()
+        snapshot_count = 0
+
+        for item in series:
+            platform = item["platform"]
+            category = item["category"]
+            history_points = int(item.get("history_points") or 0)
+            snapshot_count += history_points
+            trend = await self.analyze_genre_trend(platform, category, days)
+            if not trend:
+                continue
+
+            change = trend.score_change_7d
+            if history_points < 8:
+                change = trend.score_change_3d if history_points >= 4 else trend.score_change_1d
+
+            row = {
+                **trend.to_dict(),
+                "change_value": change,
+                "history": trend.history,
+            }
+            trend_rows.append(row)
+            heatmap.append({
+                "platform": platform,
+                "genre": category,
+                "score": round(trend.current_score, 2),
+            })
+
+            latest = await self.snapshot_repo.get_ranking_snapshot(
+                item["latest_date"], platform, category
+            )
+            if latest:
+                for ranking in latest.items:
+                    tag_counter.update(tag for tag in ranking.tags if tag and tag != category)
+
+        rising = sorted(
+            (row for row in trend_rows if row["change_value"] > 0),
+            key=lambda row: row["change_value"],
+            reverse=True,
+        )[:5]
+        declining = sorted(
+            (row for row in trend_rows if row["change_value"] < 0),
+            key=lambda row: row["change_value"],
+        )[:5]
+        hot = sorted(trend_rows, key=lambda row: row["current_score"], reverse=True)[:5]
+        line_series = [
+            {
+                "platform": row["platform"],
+                "genre": row["genre"],
+                "data_points": row["history"],
+            }
+            for row in hot
+        ]
+
+        max_history = max((int(item.get("history_points") or 0) for item in series), default=0)
+        return {
+            "days": days,
+            "data_state": "historical" if max_history >= 2 else "single_snapshot",
+            "snapshot_count": snapshot_count,
+            "series_count": len(trend_rows),
+            "rising": rising,
+            "declining": declining,
+            "hot": hot,
+            "line_series": line_series,
+            "heatmap": heatmap,
+            "hot_tags": [
+                {"name": name, "value": count}
+                for name, count in tag_counter.most_common(10)
+            ],
         }

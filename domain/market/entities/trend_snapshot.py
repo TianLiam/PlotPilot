@@ -16,6 +16,7 @@ class RankingSnapshotItem:
     word_count: int = 0
     popularity: int = 0
     score: float = 0.0
+    tags: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -45,6 +46,7 @@ class RankingSnapshot:
                     "word_count": i.word_count,
                     "popularity": i.popularity,
                     "score": i.score,
+                    "tags": i.tags,
                 } for i in self.items
             ],
         }

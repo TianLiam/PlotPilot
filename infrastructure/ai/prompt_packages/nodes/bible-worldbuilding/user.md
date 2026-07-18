@@ -9,6 +9,12 @@
 基调：{world_preset}
 特殊要求：{special_requirements}
 
+【类型开篇画像】
+{genre_opening_profile}
+
+【世界观字段契约】
+{fields_desc}
+
 请生成世界观。
 
 请按照以下 json 格式输出，可被 Python json.loads 解析。只给出 JSON，不要解释，不要 markdown 说明。

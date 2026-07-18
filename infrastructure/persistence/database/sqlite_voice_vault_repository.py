@@ -44,7 +44,7 @@ class SqliteVoiceVaultRepository(VoiceVaultRepository):
             diff_analysis,
             now
         ))
-        self.db.get_connection().commit()
+        self.db.commit()
         logger.info(f"Added voice sample: {sample_id} for novel {novel_id}")
         return sample_id
 

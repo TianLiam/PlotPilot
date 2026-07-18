@@ -3,6 +3,7 @@
 整合所有子项目组件，实现完整的章节生成流程。
 """
 import asyncio
+import json
 import logging
 import re
 from typing import Tuple, Dict, Any, AsyncIterator, Optional, List, Callable, Awaitable
@@ -1028,6 +1029,9 @@ class AutoNovelGenerationWorkflow:
         beat_target_words: Optional[int] = None,
         voice_anchors: str = "",
         chapter_draft_so_far: str = "",
+        genre_opening_profile: Optional[Dict[str, Any]] = None,
+        genre_reader_contract: Optional[Dict[str, Any]] = None,
+        genre_rhythm_constraints: Optional[Dict[str, Any]] = None,
     ) -> Prompt:
         """构建与 HTTP 单章 / 流式 / 托管按节拍写作一致的 Prompt（对外 API）。"""
         return self._build_prompt(
@@ -1042,6 +1046,9 @@ class AutoNovelGenerationWorkflow:
             beat_target_words=beat_target_words,
             voice_anchors=voice_anchors,
             chapter_draft_so_far=chapter_draft_so_far,
+            genre_opening_profile=genre_opening_profile,
+            genre_reader_contract=genre_reader_contract,
+            genre_rhythm_constraints=genre_rhythm_constraints,
         )
 
     def _build_prompt(
@@ -1060,6 +1067,9 @@ class AutoNovelGenerationWorkflow:
         chapter_draft_so_far: str = "",
         regeneration_guidance: Optional[str] = None,
         chapter_target_words: Optional[int] = None,
+        genre_opening_profile: Optional[Dict[str, Any]] = None,
+        genre_reader_contract: Optional[Dict[str, Any]] = None,
+        genre_rhythm_constraints: Optional[Dict[str, Any]] = None,
     ) -> Prompt:
         """构建 LLM 提示词
 
@@ -1221,6 +1231,25 @@ class AutoNovelGenerationWorkflow:
             "format_rules": format_rules,
         }
         system_message = _safe_format(system_template, system_vars)
+
+        genre_contract_parts: list[str] = []
+        if genre_opening_profile:
+            genre_contract_parts.append(
+                "【类型开篇画像】\n"
+                + json.dumps(genre_opening_profile, ensure_ascii=False, sort_keys=True)
+            )
+        if genre_reader_contract:
+            genre_contract_parts.append(
+                "【读者留存契约】\n"
+                + json.dumps(genre_reader_contract, ensure_ascii=False, sort_keys=True)
+            )
+        if genre_rhythm_constraints:
+            genre_contract_parts.append(
+                "【类型节奏约束】\n"
+                + json.dumps(genre_rhythm_constraints, ensure_ascii=False, sort_keys=True)
+            )
+        if genre_contract_parts:
+            system_message = system_message.rstrip() + "\n\n" + "\n\n".join(genre_contract_parts)
 
         # 旧版 CPMS 模板可能未含 {prose_discipline} 占位符：仍注入反八股块，避免升级后长期不生效
         if "行文戒律（反八股 / 控水分）" not in system_message:

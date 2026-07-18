@@ -182,6 +182,8 @@ class NovelDeconstructionAgent:
         
         response = await self.llm_client.generate(
             prompt,
+            system_prompt=DECONSTRUCTION_SYSTEM_PROMPT,
+            require_real_provider=True,
             max_tokens=8000,
             temperature=0.3,
         )

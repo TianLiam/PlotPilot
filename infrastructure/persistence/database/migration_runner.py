@@ -15,6 +15,34 @@ from infrastructure.persistence.database.sqlite_retry import (
 logger = logging.getLogger(__name__)
 
 
+_MIGRATION_DEPENDENCIES: dict[str, set[str]] = {
+    "add_macro_diagnosis_context_patch.sql": {"add_macro_diagnosis_results.sql"},
+}
+
+
+def _ordered_migration_paths(migrations_dir: Path) -> list[Path]:
+    """Return deterministic migration order while honoring known dependencies."""
+    paths = {path.name: path for path in migrations_dir.glob("*.sql")}
+    pending = set(paths)
+    ordered: list[Path] = []
+
+    while pending:
+        ready = sorted(
+            name
+            for name in pending
+            if not (_MIGRATION_DEPENDENCIES.get(name, set()) & pending)
+        )
+        if not ready:
+            # Defensive fallback for an accidental dependency cycle. Execution
+            # remains deterministic and the existing warning path reports it.
+            ready = [min(pending)]
+        for name in ready:
+            ordered.append(paths[name])
+            pending.remove(name)
+
+    return ordered
+
+
 def apply_migration_files(conn: sqlite3.Connection, migrations_dir: Path) -> None:
     """Apply SQL migrations idempotently using the existing tracking table."""
     retry_settings = get_sqlite_retry_settings()
@@ -64,7 +92,7 @@ def apply_migration_files(conn: sqlite3.Connection, migrations_dir: Path) -> Non
         return
 
     new_migrations = 0
-    for migration_path in sorted(migrations_dir.glob("*.sql")):
+    for migration_path in _ordered_migration_paths(migrations_dir):
         migration_file = migration_path.name
         if migration_file in applied:
             continue
@@ -111,7 +139,7 @@ def apply_migration_files_legacy(
         )
         return
 
-    for migration_path in sorted(migrations_dir.glob("*.sql")):
+    for migration_path in _ordered_migration_paths(migrations_dir):
         migration_file = migration_path.name
         try:
             migration_sql = migration_path.read_text(encoding="utf-8")

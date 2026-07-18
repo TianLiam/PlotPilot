@@ -4,13 +4,16 @@ import {
   LineChart,
   PieChart,
   GraphChart,
+  HeatmapChart,
 } from 'echarts/charts'
 import {
   TitleComponent,
   TooltipComponent,
   GridComponent,
+  LegendComponent,
   MarkLineComponent,
   MarkPointComponent,
+  VisualMapComponent,
 } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 
@@ -19,12 +22,15 @@ use([
   TitleComponent,
   TooltipComponent,
   GridComponent,
+  LegendComponent,
   MarkLineComponent,
   MarkPointComponent,
+  VisualMapComponent,
   BarChart,
   LineChart,
   PieChart,
   GraphChart,
+  HeatmapChart,
   CanvasRenderer
 ])
 

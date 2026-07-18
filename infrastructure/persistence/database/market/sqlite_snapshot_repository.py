@@ -2,7 +2,7 @@
 import json
 import logging
 from datetime import date, datetime, timedelta
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from domain.market.entities.trend_snapshot import (
     RankingSnapshot,
@@ -99,6 +99,7 @@ class SqliteSnapshotRepository(SnapshotRepository):
                 "word_count": i.word_count,
                 "popularity": i.popularity,
                 "score": i.score,
+                "tags": i.tags,
             } for i in snapshot.items
         ])
         
@@ -173,6 +174,19 @@ class SqliteSnapshotRepository(SnapshotRepository):
         )
         
         return [row["snapshot_date"] for row in rows]
+
+    async def list_ranking_series(self, days: int = 30) -> List[Dict[str, Any]]:
+        cutoff = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d")
+        rows = self.db.fetch_all(
+            """SELECT platform, category, COUNT(DISTINCT snapshot_date) AS history_points,
+                      MAX(snapshot_date) AS latest_date
+               FROM ranking_snapshots
+               WHERE snapshot_date >= ?
+               GROUP BY platform, category
+               ORDER BY platform, category""",
+            (cutoff,),
+        )
+        return [dict(row) for row in rows]
     
     def _row_to_ranking_snapshot(self, row: dict) -> RankingSnapshot:
         """数据库行转快照实体"""
@@ -188,6 +202,7 @@ class SqliteSnapshotRepository(SnapshotRepository):
                 word_count=i.get("word_count", 0),
                 popularity=i.get("popularity", 0),
                 score=i.get("score", 0.0),
+                tags=list(i.get("tags") or []),
             ) for i in items_data
         ]
         

@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import random
+import re
 import time
 from typing import Dict, Any, Optional, Tuple
 from datetime import datetime
@@ -26,6 +27,7 @@ class BaseCrawler:
         self.timeout = timeout
         self.delay_range = delay_range
         self._client: Optional[httpx.AsyncClient] = None
+        self.last_error: Optional[str] = None
 
     @property
     def client(self) -> httpx.AsyncClient:
@@ -104,6 +106,7 @@ class BaseCrawler:
             raise
 
     async def safe_request(self, method: str, url: str, max_retries: int = 1, **kwargs) -> Optional[httpx.Response]:
+        self.last_error = None
         for attempt in range(max_retries):
             try:
                 if method.lower() == 'get':
@@ -117,6 +120,7 @@ class BaseCrawler:
                 if attempt < max_retries - 1:
                     await asyncio.sleep(1)
                 else:
+                    self.last_error = f"HTTP {e.response.status_code}: {url}"
                     return None
             except Exception as e:
                 logger.warning(f"Request attempt {attempt + 1} failed for {url}: {e}")
@@ -124,12 +128,22 @@ class BaseCrawler:
                     await asyncio.sleep(1)
                 else:
                     logger.error(f"All {max_retries} attempts failed for {url}")
+                    self.last_error = f"{type(e).__name__}: {e}"
                     return None
 
     def parse_int(self, value: Any, default: int = 0) -> int:
+        if value is None:
+            return default
+
+        text = str(value).replace(',', '').strip()
+        match = re.search(r"-?\d+(?:\.\d+)?", text)
+        if not match:
+            return default
+
+        multiplier = 100_000_000 if "亿" in text else (10_000 if "万" in text else 1)
         try:
-            return int(str(value).replace(',', '').replace('万', '0000').replace('亿', '00000000'))
-        except (ValueError, TypeError):
+            return int(float(match.group(0)) * multiplier)
+        except (ValueError, TypeError, OverflowError):
             return default
 
     def parse_float(self, value: Any, default: float = 0.0) -> float:

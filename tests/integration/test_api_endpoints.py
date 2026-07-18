@@ -20,7 +20,13 @@ def setup_test_env(monkeypatch, tmp_path):
     test_output = tmp_path / "output"
     test_output.mkdir()
     monkeypatch.setenv("OUTPUT_DIR", str(test_output))
+    from infrastructure.persistence.database.connection import DatabaseConnection
+    import infrastructure.persistence.database.connection as connection_module
+
+    database = DatabaseConnection(str(tmp_path / "api-endpoints.db"))
+    monkeypatch.setattr(connection_module, "_db_instance", database)
     yield
+    database.close_all()
     # 清理
     if test_output.exists():
         shutil.rmtree(test_output)

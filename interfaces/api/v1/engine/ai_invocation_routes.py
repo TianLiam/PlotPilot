@@ -171,6 +171,19 @@ def _materialize_request_variables_before_invoke(repos, request: InvocationCreat
             continue
         for alias in _request_binding_aliases(binding):
             bindings.setdefault(alias, binding)
+    # The title is a novel fact used for audit/snapshot continuity, but it is
+    # intentionally not a chapter-prose prompt binding. Persist it separately
+    # when clients include it in any invocation request.
+    title_binding = VariableBinding(
+        alias="novel_title",
+        variable_key="novel.setup.title",
+        required=False,
+        scope="novel",
+        stage="setup",
+        display_name="小说名称",
+    )
+    for alias in _request_binding_aliases(title_binding):
+        bindings.setdefault(alias, title_binding)
     if not bindings:
         return []
     trace_id = str((request.metadata or {}).get("trace_id") or f"request:{request.operation}:{request.node_key}")
@@ -779,10 +792,9 @@ async def create_invocation(request: InvocationCreateRequest) -> dict[str, Any]:
         pass
     except RuntimeError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
-    pre_materialized = []
+    pre_materialized = _materialize_request_variables_before_invoke(repos, request)
     invocation_variables = request.variables
     if _request_variables_must_materialize(request.operation):
-        pre_materialized = _materialize_request_variables_before_invoke(repos, request)
         written_aliases = {item["alias"] for item in pre_materialized}
         invocation_variables = {
             alias: value

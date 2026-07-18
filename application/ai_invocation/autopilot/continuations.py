@@ -435,9 +435,14 @@ def register_autopilot_continuations() -> None:
         if not isinstance(chapters, list) or not chapters:
             raise ValueError("autopilot_act_plan_requires_non_empty_chapters")
         expected_count = int(ctx.session.context.get("chapter_count") or 0)
-        errors = validate_lightweight_act_plan(chapters, expected_count=expected_count)
-        if errors:
-            raise ValueError("autopilot_act_plan_incomplete_or_truncated: " + "; ".join(errors))
+        # Older/manual DIRECT sessions did not persist chapter_count or the
+        # lightweight handoff fields. Keep those accepted payloads readable,
+        # while retaining strict validation for the real autopilot path where
+        # chapter_count is part of the invocation context.
+        if expected_count > 0:
+            errors = validate_lightweight_act_plan(chapters, expected_count=expected_count)
+            if errors:
+                raise ValueError("autopilot_act_plan_incomplete_or_truncated: " + "; ".join(errors))
 
         novel_id = str(ctx.session.context.get("novel_id") or "")
         act_id = str(ctx.session.context.get("act_id") or "")

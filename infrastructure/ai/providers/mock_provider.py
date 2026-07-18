@@ -29,6 +29,8 @@ class MockResponseFactory:
     def build(self, prompt: Prompt) -> str:
         intent = self._detect_intent(prompt)
         builders: Dict[str, Callable[[], str]] = {
+            "macro_refactor": self._macro_refactor,
+            "tension_analysis": self._tension_analysis,
             "macro_plan": self._macro_plan,
             "worldbuilding": self._worldbuilding,
             "characters": self._characters,
@@ -43,6 +45,18 @@ class MockResponseFactory:
     def _detect_intent(self, prompt: Prompt) -> str:
         text = f"{prompt.system}\n{prompt.user}".lower()
 
+        if (
+            "refactor-proposal-macro" in text
+            or '"natural_language_suggestion"' in text
+            and '"suggested_mutations"' in text
+        ):
+            return "macro_refactor"
+        if (
+            "tension-analysis-diagnosis" in text
+            or '"tension_level"' in text
+            and '"missing_elements"' in text
+        ):
+            return "tension_analysis"
         if "setup_main_plot_options_v1" in text or "plot_options" in text or "主线候选" in text:
             return "main_plot_options"
         if '"plot_outline"' in text or "剧情总纲" in text or "setup.plot_outline" in text:
@@ -63,6 +77,34 @@ class MockResponseFactory:
 
     def _json(self, payload: JsonObject) -> str:
         return json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+
+    def _macro_refactor(self) -> str:
+        return self._json(
+            {
+                "natural_language_suggestion": (
+                    "围绕作者意图重新检查事件动机、角色行为与后果，并同步调整相关标签。"
+                ),
+                "suggested_mutations": [],
+                "suggested_tags": [],
+                "reasoning": (
+                    "当前未配置真实模型，因此只返回结构化的中性建议；"
+                    "配置模型后可生成针对当前事件的具体重构方案。"
+                ),
+            }
+        )
+
+    def _tension_analysis(self) -> str:
+        return self._json(
+            {
+                "diagnosis": "当前章节需要更清楚地呈现人物目标、可见阻力和行动后果。",
+                "tension_level": "medium",
+                "missing_elements": ["可见阻力", "行动后果"],
+                "suggestions": [
+                    "引入一个会立即阻碍当前目标的具体变化。",
+                    "让主角当场做出选择，并在本章呈现这一选择的代价。",
+                ],
+            }
+        )
 
     def _macro_plan(self) -> str:
         return self._json(

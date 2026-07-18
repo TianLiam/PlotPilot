@@ -916,6 +916,25 @@ CREATE INDEX IF NOT EXISTS idx_dag_versions_updated_at ON dag_versions(novel_id,
 
 -- ========== 市场分析模块（AI爆款工厂）==========
 
+-- 内置模板表（金手指/人物/世界观/爽点模板）
+CREATE TABLE IF NOT EXISTS templates (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    template_type TEXT NOT NULL,
+    genre TEXT NOT NULL,
+    content TEXT NOT NULL,
+    description TEXT DEFAULT '',
+    popularity INTEGER DEFAULT 0,
+    usage_count INTEGER DEFAULT 0,
+    is_active INTEGER DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    extra_data TEXT DEFAULT '{}'
+);
+CREATE INDEX IF NOT EXISTS idx_market_templates_type ON templates(template_type);
+CREATE INDEX IF NOT EXISTS idx_market_templates_genre ON templates(genre);
+CREATE INDEX IF NOT EXISTS idx_market_templates_active ON templates(is_active);
+
 -- 动态模板表（自动发现的金手指/人物/世界观/爽点模板）
 CREATE TABLE IF NOT EXISTS discovered_templates (
     id TEXT PRIMARY KEY,
@@ -937,9 +956,9 @@ CREATE TABLE IF NOT EXISTS discovered_templates (
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_templates_type ON discovered_templates(pattern_type);
-CREATE INDEX IF NOT EXISTS idx_templates_genre ON discovered_templates(genre);
-CREATE INDEX IF NOT EXISTS idx_templates_trend ON discovered_templates(trend, confidence_score DESC);
+CREATE INDEX IF NOT EXISTS idx_discovered_templates_type ON discovered_templates(pattern_type);
+CREATE INDEX IF NOT EXISTS idx_discovered_templates_genre ON discovered_templates(genre);
+CREATE INDEX IF NOT EXISTS idx_discovered_templates_trend ON discovered_templates(trend, confidence_score DESC);
 
 -- 榜单快照表（每日保存各平台排行榜）
 CREATE TABLE IF NOT EXISTS ranking_snapshots (

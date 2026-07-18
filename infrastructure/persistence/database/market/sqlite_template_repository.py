@@ -32,9 +32,9 @@ class SqliteTemplateRepository(TemplateRepository):
             )
         """
         self.db.execute(sql)
-        self.db.execute("CREATE INDEX IF NOT EXISTS idx_templates_type ON templates(template_type)")
-        self.db.execute("CREATE INDEX IF NOT EXISTS idx_templates_genre ON templates(genre)")
-        self.db.execute("CREATE INDEX IF NOT EXISTS idx_templates_active ON templates(is_active)")
+        self.db.execute("CREATE INDEX IF NOT EXISTS idx_market_templates_type ON templates(template_type)")
+        self.db.execute("CREATE INDEX IF NOT EXISTS idx_market_templates_genre ON templates(genre)")
+        self.db.execute("CREATE INDEX IF NOT EXISTS idx_market_templates_active ON templates(is_active)")
         self.db.get_connection().commit()
 
     def save(self, template: Template) -> None:

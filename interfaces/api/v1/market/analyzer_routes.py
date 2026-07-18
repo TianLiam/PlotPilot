@@ -79,6 +79,8 @@ async def generate_full_analysis(
             "recommendations": analysis.recommendations,
             "ai_explanation": analysis.ai_explanation
         }
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
         logger.error(f"Failed to generate full analysis: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to generate full analysis: {str(e)}")

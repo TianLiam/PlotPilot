@@ -27,7 +27,7 @@ def test_dag_cache_evicts_least_recently_used_entry(monkeypatch):
     assert set(dag_routes._dag_cache) == {"n1", "n3"}
     assert dag_routes._dag_cache["n1"] is first
     assert dag_routes._dag_cache["n3"] is third
-    assert second not in dag_routes._dag_cache.values()
+    assert all(cached is not second for cached in dag_routes._dag_cache.values())
 
 
 def test_dag_cache_reuses_cached_dag(monkeypatch):

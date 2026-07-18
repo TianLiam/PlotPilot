@@ -151,16 +151,12 @@ class RelationshipEngine:
         Returns:
             共同连接的角色 ID 列表
         """
-        # 获取两个角色的所有关系
-        char1_relationships = self._graph.get_all_relationships(char1_id)
-        char2_relationships = self._graph.get_all_relationships(char2_id)
-
-        # 提取角色 ID
-        char1_connections = {char_id for char_id, _ in char1_relationships}
-        char2_connections = {char_id for char_id, _ in char2_relationships}
-
-        # 找出共同连接（排除彼此）
-        common = char1_connections & char2_connections
+        # dict_keys implements set intersection in C. This avoids materializing
+        # two relationship tuple lists and then rebuilding two temporary sets.
+        common = (
+            self._graph.get_connection_ids(char1_id)
+            & self._graph.get_connection_ids(char2_id)
+        )
         common.discard(char1_id)
         common.discard(char2_id)
 

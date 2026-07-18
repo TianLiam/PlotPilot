@@ -49,15 +49,15 @@ class SqliteDynamicTemplateRepository(DynamicTemplateRepository):
             )
         """)
         self.db.execute("""
-            CREATE INDEX IF NOT EXISTS idx_templates_type 
+            CREATE INDEX IF NOT EXISTS idx_discovered_templates_type
             ON discovered_templates(pattern_type)
         """)
         self.db.execute("""
-            CREATE INDEX IF NOT EXISTS idx_templates_genre 
+            CREATE INDEX IF NOT EXISTS idx_discovered_templates_genre
             ON discovered_templates(genre)
         """)
         self.db.execute("""
-            CREATE INDEX IF NOT EXISTS idx_templates_trend 
+            CREATE INDEX IF NOT EXISTS idx_discovered_templates_trend
             ON discovered_templates(trend, confidence_score DESC)
         """)
         self.db.commit()

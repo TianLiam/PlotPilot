@@ -89,11 +89,10 @@ class NovelService:
         """Return only the user-authored premise; presets must not be spliced into it."""
         return (premise or "").strip()
 
-    @staticmethod
-    def _sync_variable_hub_from_novel(novel: Novel) -> None:
+    def _sync_variable_hub_from_novel(self, novel: Novel) -> None:
         try:
             from application.ai_invocation.variable_hub import VariableWrite
-            from infrastructure.persistence.database.connection import get_database
+            from infrastructure.persistence.database.connection import DatabaseConnection
             from infrastructure.persistence.database.sqlite_ai_invocation_repository import SqliteVariableHubRepository
         except Exception:
             return
@@ -126,7 +125,10 @@ class NovelService:
             ("novel.writing_style", writing_style, "string", "写作风格"),
             ("novel.special_requirements", special_requirements, "string", "特殊要求"),
         ]
-        repo = SqliteVariableHubRepository(get_database())
+        database = getattr(self.novel_repository, "db", None)
+        if not isinstance(database, DatabaseConnection):
+            return
+        repo = SqliteVariableHubRepository(database)
         for key, value, value_type, display_name in values:
             if value in ("", None):
                 continue
@@ -239,8 +241,11 @@ class NovelService:
 
         try:
             from infrastructure.persistence.database.sqlite_bible_repository import SqliteBibleRepository
-            from infrastructure.persistence.database.connection import get_database
-            bible_repo = SqliteBibleRepository(get_database())
+            from infrastructure.persistence.database.connection import DatabaseConnection
+            database = getattr(self.novel_repository, "db", None)
+            if not isinstance(database, DatabaseConnection):
+                return False
+            bible_repo = SqliteBibleRepository(database)
             bible = bible_repo.get_by_novel_id(NovelId(novel_id))
             return bible is not None
         except Exception:

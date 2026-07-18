@@ -22,14 +22,26 @@
       <section class="data-note">
         <span class="data-note-mark">DATA</span>
         <div>
-          <strong>趋势需要连续快照才能成立</strong>
-          <p>当前图表优先读取榜单快照；样本不足时展示趋势估算，刷新榜单后会逐日积累可信度。</p>
+          <strong>趋势仅使用真实榜单快照</strong>
+          <p>{{ dataNotice }}</p>
         </div>
         <div class="data-note-tags">
           <n-tag v-if="focusGenre" :bordered="false" type="success">聚焦：{{ focusGenre }}</n-tag>
           <n-tag :bordered="false" type="info">{{ timeRange }} 天窗口</n-tag>
+          <n-tag :bordered="false" :type="dashboard.data_state === 'historical' ? 'success' : 'warning'">
+            {{ dataStateLabel }}
+          </n-tag>
         </div>
       </section>
+
+      <n-alert v-if="loadError" type="error" :show-icon="true" class="dashboard-alert">
+        {{ loadError }}
+      </n-alert>
+      <n-empty
+        v-else-if="!loading && dashboard.data_state === 'empty'"
+        description="尚无真实榜单快照，请先在市场洞察页刷新榜单"
+        class="dashboard-empty"
+      />
 
       <n-grid :cols="3" :x-gap="16" :y-gap="16" responsive="screen" class="alert-section">
         <n-gi>
@@ -87,11 +99,11 @@
         </n-gi>
 
         <n-gi :span="1">
-          <n-card class="chart-card" :bordered="false" title="热门金手指分布">
+          <n-card class="chart-card" :bordered="false" title="榜单热门标签分布">
             <ChartWrapper
               :option="goldenFingerOption"
               height="320px"
-              aria-label="热门金手指饼图"
+              aria-label="榜单热门标签饼图"
             />
           </n-card>
         </n-gi>
@@ -153,13 +165,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import ChartWrapper from '@/components/charts/ChartWrapper.vue'
 import MarketSectionHeader from '@/components/market/MarketSectionHeader.vue'
+import { marketApi, type TrendDashboard } from '@/api/market'
+import { getApiErrorDetail } from '@/utils/apiError'
 import type { EChartsOption } from 'echarts'
 
 const timeRange = ref('30')
+const loading = ref(false)
+const loadError = ref('')
 const route = useRoute()
 const focusGenre = computed(() => typeof route.query.genre === 'string' ? route.query.genre : '')
 const focusGenreRoot = computed(() => focusGenre.value.split(/[\/·]/)[0]?.trim() || '')
@@ -167,51 +183,86 @@ const fromDashboard = computed(() => route.query.from === 'dashboard')
 const backTarget = computed(() => fromDashboard.value ? '/dashboard' : '/market')
 const backLabel = computed(() => fromDashboard.value ? '返回创作总览' : '返回市场洞察')
 
+const emptyDashboard = (): TrendDashboard => ({
+  days: Number(timeRange.value),
+  data_state: 'empty',
+  snapshot_count: 0,
+  series_count: 0,
+  rising: [],
+  declining: [],
+  hot: [],
+  line_series: [],
+  heatmap: [],
+  hot_tags: [],
+})
+
+const dashboard = ref<TrendDashboard>(emptyDashboard())
+
+const platformLabels: Record<string, string> = {
+  qidian: '起点中文网',
+  fanqie: '番茄小说',
+  qimao: '七猫小说',
+}
+
+function platformLabel(platform: string): string {
+  return platformLabels[platform] || platform
+}
+
 function matchesFocus(name: string): boolean {
   const root = focusGenreRoot.value
   return Boolean(root && (name.includes(root) || root.includes(name)))
 }
 
-const risingGenres = ref([
-  { name: '都市签到流', platform: '番茄小说', change: 28 },
-  { name: '玄幻无敌流', platform: '起点中文网', change: 15 },
-  { name: '重生年代文', platform: '七猫小说', change: 12 },
-  { name: '系统赘婿', platform: '番茄小说', change: 8 },
-  { name: '灵气复苏', platform: '起点中文网', change: 6 },
-])
+const risingGenres = computed(() => dashboard.value.rising.map(item => ({
+  name: item.genre,
+  platform: platformLabel(item.platform),
+  change: Math.round(item.change_value * 100) / 100,
+})))
 
-const fallingGenres = ref([
-  { name: '末世求生', platform: '起点中文网', change: -12 },
-  { name: '宫斗宅斗', platform: '晋江文学', change: -8 },
-  { name: '洪荒流', platform: '番茄小说', change: -5 },
-  { name: '网游竞技', platform: '起点中文网', change: -3 },
-  { name: '异能都市', platform: '七猫小说', change: -2 },
-])
+const fallingGenres = computed(() => dashboard.value.declining.map(item => ({
+  name: item.genre,
+  platform: platformLabel(item.platform),
+  change: Math.round(item.change_value * 100) / 100,
+})))
 
-const hotGenres = ref([
-  { name: '都市脑洞', heat: 95 },
-  { name: '玄幻脑洞', heat: 88 },
-  { name: '甜宠', heat: 82 },
-])
+const hotGenres = computed(() => dashboard.value.hot)
+
+const dataStateLabel = computed(() => ({
+  empty: '无快照',
+  single_snapshot: '单日样本',
+  historical: '历史趋势',
+}[dashboard.value.data_state]))
+
+const dataNotice = computed(() => {
+  if (dashboard.value.data_state === 'empty') {
+    return '当前没有可用快照，不展示估算或随机趋势。'
+  }
+  if (dashboard.value.data_state === 'single_snapshot') {
+    return `已读取 ${dashboard.value.snapshot_count} 个真实快照，但只有单日样本；热度可用，涨跌保持为 0。`
+  }
+  return `已读取 ${dashboard.value.snapshot_count} 个真实快照、${dashboard.value.series_count} 条平台题材序列。`
+})
+
+const selectedLineSeries = computed(() => {
+  if (!focusGenreRoot.value) return dashboard.value.line_series
+  return dashboard.value.line_series.filter(item => matchesFocus(item.genre))
+})
 
 const trendLineOption = computed<EChartsOption>(() => {
-  const dates = Array.from({ length: 30 }, (_, i) => {
-    const d = new Date()
-    d.setDate(d.getDate() - (29 - i))
-    return `${d.getMonth() + 1}/${d.getDate()}`
-  })
-
-  const genres = ['都市签到流', '玄幻无敌流', '重生年代文', '系统赘婿', '末世求生']
+  const dates = Array.from(new Set(
+    selectedLineSeries.value.flatMap(item => item.data_points.map(point => point.date)),
+  )).sort()
   const colors = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
+  const names = selectedLineSeries.value.map(item => `${platformLabel(item.platform)} · ${item.genre}`)
 
   return {
     tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
-    legend: { data: genres, bottom: 0, icon: 'circle', itemWidth: 8, itemHeight: 8 },
+    legend: { data: names, bottom: 0, icon: 'circle', itemWidth: 8, itemHeight: 8 },
     grid: { left: '3%', right: '4%', bottom: '12%', top: '8%', containLabel: true },
     xAxis: {
       type: 'category',
       boundaryGap: false,
-      data: dates,
+      data: dates.map(date => date.slice(5).replace('-', '/')),
       axisLine: { lineStyle: { color: '#e5e7eb' } },
       axisLabel: { color: '#64748b', fontSize: 11 },
     },
@@ -223,43 +274,40 @@ const trendLineOption = computed<EChartsOption>(() => {
       splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
       axisLabel: { color: '#64748b', fontSize: 11 },
     },
-    series: genres.map((name, i) => ({
-      name,
+    series: selectedLineSeries.value.map((item, i) => {
+      const scoreByDate = new Map(item.data_points.map(point => [point.date, point.score]))
+      return {
+      name: names[i],
       type: 'line',
       smooth: true,
       symbol: 'none',
       lineStyle: { width: 2 },
-      itemStyle: { color: colors[i] },
+      itemStyle: { color: colors[i % colors.length] },
       areaStyle: {
         color: {
           type: 'linear',
           x: 0, y: 0, x2: 0, y2: 1,
           colorStops: [
-            { offset: 0, color: colors[i] + '33' },
-            { offset: 1, color: colors[i] + '05' },
+            { offset: 0, color: colors[i % colors.length] + '33' },
+            { offset: 1, color: colors[i % colors.length] + '05' },
           ],
         },
       },
-      data: dates.map((_, dIdx) => {
-        const base = [80, 65, 55, 45, 35][i]
-        const trend = dIdx * ([2, 1.5, 1.2, 0.8, -0.5][i])
-        const noise = Math.sin(dIdx * 0.5 + i) * 5
-        return Math.round(base + trend + noise)
-      }),
-    })),
+      data: dates.map(date => scoreByDate.get(date) ?? null),
+    }}),
   }
 })
 
 const heatmapOption = computed<EChartsOption>(() => {
-  const platforms = ['番茄小说', '起点中文网', '七猫小说', '晋江文学', '纵横中文网']
-  const genres = ['都市', '玄幻', '言情', '科幻', '历史', '悬疑', '游戏', '仙侠']
-
-  const data: [number, number, number][] = []
-  platforms.forEach((_, x) => {
-    genres.forEach((__, y) => {
-      data.push([x, y, Math.round(Math.random() * 60 + 20)])
-    })
-  })
+  const platformKeys = Array.from(new Set(dashboard.value.heatmap.map(item => item.platform)))
+  const genres = Array.from(new Set(dashboard.value.heatmap.map(item => item.genre)))
+  const platforms = platformKeys.map(platformLabel)
+  const data: [number, number, number][] = dashboard.value.heatmap.map(item => [
+    platformKeys.indexOf(item.platform),
+    genres.indexOf(item.genre),
+    item.score,
+  ])
+  const maxScore = Math.max(100, ...dashboard.value.heatmap.map(item => item.score))
 
   return {
     tooltip: {
@@ -283,7 +331,7 @@ const heatmapOption = computed<EChartsOption>(() => {
     },
     visualMap: {
       min: 0,
-      max: 100,
+      max: maxScore,
       calculable: true,
       orient: 'horizontal',
       left: 'center',
@@ -337,15 +385,24 @@ const goldenFingerOption = computed<EChartsOption>(() => ({
         fontWeight: 'bold',
       },
     },
-    data: [
-      { value: 35, name: '签到系统', itemStyle: { color: '#4f46e5' } },
-      { value: 25, name: '重生/穿越', itemStyle: { color: '#10b981' } },
-      { value: 18, name: '无敌流', itemStyle: { color: '#f59e0b' } },
-      { value: 12, name: '聊天群', itemStyle: { color: '#ef4444' } },
-      { value: 10, name: '模拟器', itemStyle: { color: '#8b5cf6' } },
-    ],
+    data: dashboard.value.hot_tags,
   }],
 }))
+
+async function loadDashboard() {
+  loading.value = true
+  loadError.value = ''
+  try {
+    dashboard.value = await marketApi.getTrendDashboard(Number(timeRange.value))
+  } catch (error) {
+    dashboard.value = emptyDashboard()
+    loadError.value = getApiErrorDetail(error) || '趋势大盘加载失败'
+  } finally {
+    loading.value = false
+  }
+}
+
+watch(timeRange, loadDashboard, { immediate: true })
 </script>
 
 <style scoped>

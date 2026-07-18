@@ -141,6 +141,8 @@ class AIResearchAgent:
             # 调用LLM
             response = await self.llm_client.generate(
                 prompt,
+                system_prompt=RESEARCH_SYSTEM_PROMPT,
+                require_real_provider=True,
                 max_tokens=6000,
                 temperature=0.5,
             )

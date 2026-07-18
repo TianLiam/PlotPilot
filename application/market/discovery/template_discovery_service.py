@@ -5,6 +5,7 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 
 from domain.market.entities.dynamic_template import DiscoveredTemplate, TemplateType
+from domain.market.entities.ranking import Ranking
 from domain.market.repositories.dynamic_template_repository import DynamicTemplateRepository
 from infrastructure.persistence.database.connection import DatabaseConnection
 from infrastructure.persistence.database.market.sqlite_ranking_repository import SqliteRankingRepository
@@ -39,7 +40,7 @@ class TemplateDiscoveryService:
     
     async def discover_from_top_novels(
         self,
-        platform: str = "fanqie",
+        platform: str = "qidian",
         category: Optional[str] = None,
         top_n: int = 5,
         max_chapters: int = 20,
@@ -75,6 +76,7 @@ class TemplateDiscoveryService:
             if not rankings:
                 logger.warning(f"No rankings found for platform={platform}, category={category}")
                 result["errors"].append("No rankings found")
+                result["completed_at"] = datetime.utcnow().isoformat()
                 return result
             
             logger.info(f"Found {len(rankings)} top novels to analyze")
@@ -82,10 +84,11 @@ class TemplateDiscoveryService:
             # 2. 逐本分析
             for rank_item in rankings:
                 try:
-                    book_id = str(rank_item.get("book_id") or rank_item.get("novel_id", ""))
-                    book_name = rank_item.get("novel_name", rank_item.get("name", ""))
+                    book_id = str((rank_item.extra_data or {}).get("book_id") or "")
+                    book_name = rank_item.novel_name
                     
                     if not book_id:
+                        result["errors"].append(f"Missing book_id for ranking: {book_name}")
                         continue
                     
                     logger.info(f"Analyzing novel: {book_name} (ID: {book_id})")
@@ -99,7 +102,11 @@ class TemplateDiscoveryService:
                     
                     if not novel_data or not novel_data.get("chapters"):
                         logger.warning(f"No chapters crawled for {book_name}")
+                        result["errors"].append(f"No readable free chapters for {book_name}")
                         continue
+                    novel_data["book_name"] = novel_data.get("book_name") or book_name
+                    novel_data["author"] = novel_data.get("author") or rank_item.author
+                    novel_data["category"] = novel_data.get("category") or rank_item.category
                     
                     # 合并文本用于分析
                     analysis_text = await self.content_crawler.get_novel_text_for_analysis(
@@ -111,9 +118,9 @@ class TemplateDiscoveryService:
                     novel_info = {
                         **novel_data,
                         "platform": platform,
-                        "rank": rank_item.get("rank", 0),
-                        "popularity": rank_item.get("popularity", 0),
-                        "score": rank_item.get("score", 0),
+                        "rank": rank_item.rank,
+                        "popularity": rank_item.popularity or 0,
+                        "score": rank_item.score or 0,
                     }
                     
                     # AI分析
@@ -123,7 +130,9 @@ class TemplateDiscoveryService:
                     )
                     
                     if analysis_result.get("error"):
-                        logger.warning(f"Analysis failed for {book_name}: {analysis_result.get('error')}")
+                        error_msg = f"AI analysis failed for {book_name}: {analysis_result.get('error')}"
+                        logger.warning(error_msg)
+                        result["errors"].append(error_msg)
                         continue
                     
                     # 提取模板
@@ -145,7 +154,7 @@ class TemplateDiscoveryService:
                     await asyncio.sleep(2)
                     
                 except Exception as e:
-                    error_msg = f"Failed to analyze {rank_item.get('novel_name', 'unknown')}: {str(e)}"
+                    error_msg = f"Failed to analyze {getattr(rank_item, 'novel_name', 'unknown')}: {str(e)}"
                     logger.error(error_msg)
                     result["errors"].append(error_msg)
                     continue
@@ -164,17 +173,22 @@ class TemplateDiscoveryService:
         platform: str,
         category: Optional[str],
         limit: int,
-    ) -> List[Dict[str, Any]]:
+    ) -> List[Ranking]:
         """获取热门榜单数据"""
         try:
             # 从数据库获取最新榜单
-            rankings = self.ranking_repo.get_by_platform_and_category(
-                platform=platform,
-                category=category,
-                limit=limit,
-            )
-            
-            return rankings
+            if category:
+                rankings = self.ranking_repo.get_by_platform_and_category(platform, category)
+            else:
+                rankings = self.ranking_repo.get_by_platform(platform)
+
+            # Repository rows are newest-first. Keep a single newest record per
+            # book, then rank the current sample before applying the caller limit.
+            latest_by_book: Dict[str, Ranking] = {}
+            for ranking in rankings:
+                book_id = str((ranking.extra_data or {}).get("book_id") or ranking.novel_name)
+                latest_by_book.setdefault(book_id, ranking)
+            return sorted(latest_by_book.values(), key=lambda item: item.rank)[:limit]
             
         except Exception as e:
             logger.error(f"Failed to get rankings: {e}")
@@ -197,7 +211,7 @@ class TemplateDiscoveryService:
             汇总结果
         """
         if platforms is None:
-            platforms = ["fanqie"]
+            platforms = ["qidian"]
         
         if categories is None:
             categories = ["都市", "玄幻", "言情", "仙侠"]
@@ -291,3 +305,6 @@ class TemplateDiscoveryService:
         except Exception as e:
             logger.error(f"Failed to search templates: {e}")
             return []
+
+    async def close(self) -> None:
+        await self.content_crawler.close()

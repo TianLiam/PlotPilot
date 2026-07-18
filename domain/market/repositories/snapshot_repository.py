@@ -1,6 +1,6 @@
 """历史快照仓储接口"""
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from datetime import date
 
 from domain.market.entities.trend_snapshot import (
@@ -47,6 +47,11 @@ class SnapshotRepository(ABC):
         days: int = 30,
     ) -> List[str]:
         """获取有数据的日期列表"""
+        pass
+
+    @abstractmethod
+    async def list_ranking_series(self, days: int = 30) -> List[Dict[str, Any]]:
+        """列出时间窗口内存在快照的平台/分类序列"""
         pass
     
     # ── 热点快照 ──

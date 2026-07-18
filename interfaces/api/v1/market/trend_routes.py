@@ -77,6 +77,18 @@ class AlertResponse(BaseModel):
 
 # ── API端点 ──
 
+@router.get("/dashboard", summary="获取真实趋势大盘数据")
+async def get_trend_dashboard(
+    days: int = Query(30, ge=1, le=90, description="历史天数"),
+    service: TrendAnalysisService = Depends(get_trend_service),
+):
+    """返回仅由持久化每日快照计算的趋势大盘。"""
+    try:
+        return await service.get_dashboard(days)
+    except Exception as e:
+        logger.error(f"Failed to build trend dashboard: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.post("/snapshot/save", summary="保存每日快照")
 async def save_snapshot(
     request: SaveSnapshotRequest,

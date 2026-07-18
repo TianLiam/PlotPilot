@@ -1,4 +1,5 @@
 import logging
+import json
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Tuple
 from uuid import uuid4
@@ -32,6 +33,10 @@ class MarketAnalyzerService:
         start_date = end_date - timedelta(days=days)
         
         rankings = self.ranking_repository.get_by_date_range(start_date, end_date)
+        rankings = [
+            item for item in rankings
+            if (item.extra_data or {}).get("source") != "fallback"
+        ]
         
         if not rankings:
             return {"error": "No ranking data found"}
@@ -43,6 +48,10 @@ class MarketAnalyzerService:
         start_date = end_date - timedelta(days=days)
         
         hot_topics = self.hot_topic_repository.get_by_date_range(start_date, end_date)
+        hot_topics = [
+            item for item in hot_topics
+            if (item.extra_data or {}).get("source") != "fallback"
+        ]
         
         if not hot_topics:
             return {"error": "No hot topic data found"}
@@ -56,6 +65,18 @@ class MarketAnalyzerService:
         
         ranking_stats = self.analyze_rankings(days)
         hot_topic_stats = self.analyze_hot_topics(days)
+        if "error" in ranking_stats:
+            raise ValueError("No verified ranking data found; run a successful crawl first")
+        if "error" in hot_topic_stats:
+            hot_topic_stats = {
+                "total_topics": 0,
+                "source_summary": {},
+                "category_stats": {},
+                "hot_keywords": [],
+                "average_hot_value": 0,
+                "top_topics": [],
+                "warning": "No verified hot-topic data found",
+            }
         
         genre_trends = self._calculate_genre_trends(ranking_stats)
         
@@ -206,27 +227,10 @@ class MarketAnalyzerService:
         return trends
 
     def _calculate_trend_value(self, genre: str, tag_stats: Dict[str, int]) -> float:
-        trend_tags = {
-            "玄幻": ["系统", "重生", "无敌"],
-            "都市": ["神豪", "重生", "直播"],
-            "仙侠": ["修仙", "长生", "渡劫"],
-            "历史": ["穿越", "争霸", "种田"],
-            "游戏": ["网游", "电竞", "直播"],
-            "科幻": ["末世", "星际", "机甲"],
-            "悬疑": ["推理", "破案", "惊悚"],
-            "娱乐": ["明星", "综艺", "直播"],
-            "武侠": ["江湖", "宗师", "内功"],
-            "奇幻": ["魔法", "异世界", "精灵"]
-        }
-        
-        genre_tags = trend_tags.get(genre, [])
-        total_tag_count = sum(tag_stats.get(tag, 0) for tag in genre_tags)
-        
-        if total_tag_count == 0:
-            return 0.0
-        
-        max_tag_count = max(tag_stats.values()) if tag_stats else 1
-        return round((total_tag_count / max_tag_count) * 20 - 10, 2)
+        # A single aggregated sample cannot establish temporal direction. Real
+        # rise/fall values are produced by TrendAnalysisService from daily
+        # snapshots; keep this legacy summary explicitly neutral.
+        return 0.0
 
     def _get_hot_tags_for_genre(self, genre: str, tag_stats: Dict[str, int]) -> List[str]:
         genre_tag_map = {

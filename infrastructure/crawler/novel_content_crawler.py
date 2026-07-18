@@ -5,6 +5,8 @@ import json
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
+from lxml import html as lxml_html
+
 from infrastructure.crawler.base_crawler import BaseCrawler
 
 logger = logging.getLogger(__name__)
@@ -17,8 +19,11 @@ class NovelContentCrawler(BaseCrawler):
     FANQIE_CHAPTER_LIST_API = "https://fanqienovel.com/api/novel/v1/chapter/list"
     FANQIE_CHAPTER_CONTENT_API = "https://fanqienovel.com/api/novel/v1/chapter/content"
     
-    # 起点中文网（需要处理反爬，这里只做基础实现）
-    QIDIAN_CHAPTER_API = "https://www.qidian.com/ajax/chapter"
+    QIDIAN_BASE_URL = "https://m.qidian.com"
+    QIDIAN_MOBILE_USER_AGENT = (
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "
+        "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+    )
     
     async def crawl_fanqie_free_chapters(
         self, 
@@ -202,10 +207,7 @@ class NovelContentCrawler(BaseCrawler):
         book_id: str,
         max_chapters: int = 20
     ) -> Dict[str, Any]:
-        """爬取起点中文网免费章节（基础实现）
-        
-        注意：起点有严格的反爬机制，这里只做基础实现
-        """
+        """从起点移动站目录和章节页抓取明确标记为免费的正文。"""
         result = {
             "book_id": book_id,
             "book_name": "",
@@ -218,10 +220,92 @@ class NovelContentCrawler(BaseCrawler):
             "platform": "qidian",
         }
         
-        # 起点的爬取逻辑需要处理更复杂的反爬
-        # 这里返回占位符，实际使用时需要更完善的实现
-        logger.warning("Qidian crawler is not fully implemented yet")
-        
+        try:
+            catalog_url = f"{self.QIDIAN_BASE_URL}/book/{book_id}/catalog/"
+            headers = self._get_default_headers(referer=f"{self.QIDIAN_BASE_URL}/book/{book_id}.html")
+            headers["User-Agent"] = self.QIDIAN_MOBILE_USER_AGENT
+            response = await self.safe_request("get", catalog_url, headers=headers, max_retries=2)
+            if response is None:
+                return result
+
+            document = lxml_html.fromstring(response.content.decode("utf-8", errors="replace"))
+            page_title = self.clean_text(document.xpath("string(//title)"))
+            result["book_name"] = re.split(r"最新章节|全部章节", page_title, maxsplit=1)[0].strip()
+            result["author"] = self.clean_text(
+                document.xpath("string(//meta[@property='og:novel:author']/@content)")
+            )
+
+            links = [
+                node for node in document.xpath("//a[@href]")
+                if "_chapterItem_" in (node.get("class") or "")
+                and "/chapter/" in (node.get("href") or "")
+            ]
+            result["total_chapters"] = len(links)
+
+            free_links = []
+            content_started = False
+            for node in links:
+                raw_title = " ".join(node.text_content().split())
+                if not content_started and re.match(r"^第一章(?:\s|[:：])", raw_title):
+                    content_started = True
+                if not content_started or "免费" not in raw_title:
+                    continue
+                free_links.append((node, re.sub(r"\s*免费\s*$", "", raw_title).strip()))
+                if len(free_links) >= max_chapters:
+                    break
+
+            if not free_links:
+                self.last_error = f"No readable free chapters found for Qidian book {book_id}"
+                return result
+
+            for chapter_number, (node, title) in enumerate(free_links, 1):
+                chapter_url = node.get("href") or ""
+                if chapter_url.startswith("//"):
+                    chapter_url = f"https:{chapter_url}"
+                chapter_response = await self.safe_request(
+                    "get", chapter_url, headers=headers, max_retries=2
+                )
+                if chapter_response is None:
+                    continue
+
+                chapter_document = lxml_html.fromstring(
+                    chapter_response.content.decode("utf-8", errors="replace")
+                )
+                main_nodes = chapter_document.xpath("//main")
+                if not main_nodes:
+                    continue
+                main = main_nodes[0]
+                paragraphs = [
+                    " ".join(node.text_content().split())
+                    for node in main.xpath(".//p")
+                    if " ".join(node.text_content().split())
+                ]
+                content = "\n".join(paragraphs) if paragraphs else main.text_content()
+                content = self._clean_novel_content(content)
+                if not content:
+                    continue
+
+                chapter_id_match = re.search(r"/chapter/\d+/(\d+)/?", chapter_url)
+                result["chapters"].append({
+                    "chapter_id": chapter_id_match.group(1) if chapter_id_match else chapter_url,
+                    "chapter_number": chapter_number,
+                    "title": title,
+                    "content": content,
+                    "word_count": len(content),
+                    "is_free": True,
+                })
+                result["crawled_chapters"] += 1
+                await self._delay()
+
+            logger.info(
+                "Crawled %s verified free chapters from Qidian book %s",
+                result["crawled_chapters"],
+                book_id,
+            )
+        except Exception as e:
+            self.last_error = f"{type(e).__name__}: {e}"
+            logger.error(f"Failed to crawl Qidian novel {book_id}: {e}")
+
         return result
     
     async def crawl_novel_for_analysis(

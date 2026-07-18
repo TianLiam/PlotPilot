@@ -14,6 +14,12 @@ variables:
 - name: novel_title
   desc: 小说名称
   type: string
+- name: fields_desc
+  desc: 世界观字段契约（系统运行时注入）
+  type: string
+- name: genre_opening_profile
+  desc: 类型开篇画像（系统运行时注入）
+  type: object
 - name: genre_major
   desc: 小说大类
   type: string

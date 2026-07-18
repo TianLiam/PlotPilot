@@ -10,8 +10,10 @@
 - 加载失败不影响系统启动，返回默认值
 - 支持增量加载（只加载活跃小说）
 """
+import asyncio
 import logging
 import time
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from typing import Any, Dict, List, Optional
 
 from application.core.async_bridge import run_coroutine_sync
@@ -461,7 +463,7 @@ class StateBootstrap:
                 coroutine_factory,
                 timeout=self._settings.triple_fetch_timeout_seconds,
             )
-        except TimeoutError:
+        except (TimeoutError, asyncio.TimeoutError, FuturesTimeoutError):
             logger.warning(
                 "加载三元组超时，跳过共享状态预热: novel=%s timeout=%ss",
                 novel_id,

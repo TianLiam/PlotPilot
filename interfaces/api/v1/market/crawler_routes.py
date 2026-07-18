@@ -1,4 +1,4 @@
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends
 from typing import Dict, List, Any
 import logging
 
@@ -7,20 +7,61 @@ from application.market.crawler.hot_topic_crawler_service import HotTopicCrawler
 from infrastructure.persistence.database.connection import get_database
 from infrastructure.persistence.database.market.sqlite_ranking_repository import SqliteRankingRepository
 from infrastructure.persistence.database.market.sqlite_hot_topic_repository import SqliteHotTopicRepository
+from infrastructure.persistence.database.market.sqlite_snapshot_repository import (
+    SqliteSnapshotRepository,
+    SqliteTrendAlertRepository,
+)
+from application.market.trend.trend_analysis_service import TrendAnalysisService
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/market/crawler", tags=["market-crawler"])
 
 
-def get_ranking_crawler_service() -> RankingCrawlerService:
+async def get_ranking_crawler_service():
     repo = SqliteRankingRepository(get_database())
-    return RankingCrawlerService(repo)
+    service = RankingCrawlerService(repo)
+    try:
+        yield service
+    finally:
+        await service.close()
 
 
-def get_hot_topic_crawler_service() -> HotTopicCrawlerService:
+async def get_hot_topic_crawler_service():
     repo = SqliteHotTopicRepository(get_database())
-    return HotTopicCrawlerService(repo)
+    service = HotTopicCrawlerService(repo)
+    try:
+        yield service
+    finally:
+        await service.close()
+
+
+def _require_results(results, source: str, errors: Dict[str, str]):
+    if results:
+        return {
+            "status": "success",
+            "source": source,
+            "count": len(results),
+            "message": f"Crawled {len(results)} verified records from {source}",
+        }
+    raise HTTPException(
+        status_code=502,
+        detail={
+            "status": "failed",
+            "source": source,
+            "count": 0,
+            "error": errors.get(source, "Crawler returned no verified data"),
+        },
+    )
+
+
+async def _save_ranking_snapshots(results: Dict[str, List[Any]]) -> int:
+    db = get_database()
+    trend_service = TrendAnalysisService(
+        SqliteSnapshotRepository(db),
+        SqliteTrendAlertRepository(db),
+    )
+    return await trend_service.save_crawl_snapshots(results)
 
 
 @router.post("/rankings/qidian")
@@ -29,7 +70,11 @@ async def crawl_qidian(
 ):
     try:
         results = await service.crawl_qidian()
-        return {"message": f"Crawled {len(results)} rankings from Qidian", "count": len(results)}
+        response = _require_results(results, "qidian", service.last_errors)
+        response["snapshot_count"] = await _save_ranking_snapshots({"qidian": results})
+        return response
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to crawl Qidian: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to crawl Qidian: {str(e)}")
@@ -41,7 +86,11 @@ async def crawl_fanqie(
 ):
     try:
         results = await service.crawl_fanqie()
-        return {"message": f"Crawled {len(results)} rankings from Fanqie", "count": len(results)}
+        response = _require_results(results, "fanqie", service.last_errors)
+        response["snapshot_count"] = await _save_ranking_snapshots({"fanqie": results})
+        return response
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to crawl Fanqie: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to crawl Fanqie: {str(e)}")
@@ -53,7 +102,11 @@ async def crawl_qimao(
 ):
     try:
         results = await service.crawl_qimao()
-        return {"message": f"Crawled {len(results)} rankings from Qimao", "count": len(results)}
+        response = _require_results(results, "qimao", service.last_errors)
+        response["snapshot_count"] = await _save_ranking_snapshots({"qimao": results})
+        return response
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to crawl Qimao: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to crawl Qimao: {str(e)}")
@@ -66,10 +119,29 @@ async def crawl_all_rankings(
     try:
         results = await service.crawl_all_platforms()
         total = sum(len(v) for v in results.values())
+        if total == 0:
+            raise HTTPException(
+                status_code=502,
+                detail={
+                    "status": "failed",
+                    "message": "No platform returned verified ranking data",
+                    "count_by_platform": {k: len(v) for k, v in results.items()},
+                    "errors": service.last_errors,
+                },
+            )
+        status = "partial" if service.last_errors else "success"
+        snapshot_count = await _save_ranking_snapshots(results)
         return {
-            "message": f"Crawled {total} rankings from all platforms",
-            "count_by_platform": {k: len(v) for k, v in results.items()}
+            "status": status,
+            "message": f"Crawled {total} verified rankings from all platforms",
+            "total_count": total,
+            "count_by_platform": {k: len(v) for k, v in results.items()},
+            "errors": service.last_errors,
+            "rejected_count_by_platform": service.rejected_counts,
+            "snapshot_count": snapshot_count,
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to crawl all rankings: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to crawl all rankings: {str(e)}")
@@ -81,7 +153,9 @@ async def crawl_weibo(
 ):
     try:
         results = await service.crawl_weibo()
-        return {"message": f"Crawled {len(results)} hot topics from Weibo", "count": len(results)}
+        return _require_results(results, "weibo", service.last_errors)
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to crawl Weibo: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to crawl Weibo: {str(e)}")
@@ -93,7 +167,9 @@ async def crawl_baidu(
 ):
     try:
         results = await service.crawl_baidu()
-        return {"message": f"Crawled {len(results)} hot topics from Baidu", "count": len(results)}
+        return _require_results(results, "baidu", service.last_errors)
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to crawl Baidu: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to crawl Baidu: {str(e)}")
@@ -105,7 +181,9 @@ async def crawl_zhihu(
 ):
     try:
         results = await service.crawl_zhihu()
-        return {"message": f"Crawled {len(results)} hot topics from Zhihu", "count": len(results)}
+        return _require_results(results, "zhihu", service.last_errors)
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to crawl Zhihu: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to crawl Zhihu: {str(e)}")
@@ -118,10 +196,25 @@ async def crawl_all_hot_topics(
     try:
         results = await service.crawl_all_sources()
         total = sum(len(v) for v in results.values())
+        if total == 0:
+            raise HTTPException(
+                status_code=502,
+                detail={
+                    "status": "failed",
+                    "message": "No source returned verified hot-topic data",
+                    "count_by_source": {k: len(v) for k, v in results.items()},
+                    "errors": service.last_errors,
+                },
+            )
         return {
-            "message": f"Crawled {total} hot topics from all sources",
-            "count_by_source": {k: len(v) for k, v in results.items()}
+            "status": "partial" if service.last_errors else "success",
+            "message": f"Crawled {total} verified hot topics from all sources",
+            "total_count": total,
+            "count_by_source": {k: len(v) for k, v in results.items()},
+            "errors": service.last_errors,
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to crawl all hot topics: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to crawl all hot topics: {str(e)}")
@@ -129,13 +222,24 @@ async def crawl_all_hot_topics(
 
 @router.post("/all")
 async def crawl_everything(
-    background_tasks: BackgroundTasks,
     ranking_service: RankingCrawlerService = Depends(get_ranking_crawler_service),
     hot_topic_service: HotTopicCrawlerService = Depends(get_hot_topic_crawler_service)
 ):
-    async def crawl_all():
-        await ranking_service.crawl_all_platforms()
-        await hot_topic_service.crawl_all_sources()
-    
-    background_tasks.add_task(crawl_all)
-    return {"message": "Crawling started in background", "status": "processing"}
+    ranking_results = await ranking_service.crawl_all_platforms()
+    topic_results = await hot_topic_service.crawl_all_sources()
+    ranking_count = sum(len(items) for items in ranking_results.values())
+    topic_count = sum(len(items) for items in topic_results.values())
+    errors = {**ranking_service.last_errors, **hot_topic_service.last_errors}
+    if ranking_count + topic_count == 0:
+        raise HTTPException(
+            status_code=502,
+            detail={"status": "failed", "message": "No verified external data was collected", "errors": errors},
+        )
+    snapshot_count = await _save_ranking_snapshots(ranking_results) if ranking_count else 0
+    return {
+        "status": "partial" if errors else "success",
+        "ranking_count": ranking_count,
+        "hot_topic_count": topic_count,
+        "snapshot_count": snapshot_count,
+        "errors": errors,
+    }

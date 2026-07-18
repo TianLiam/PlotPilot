@@ -150,6 +150,8 @@ class BestsellerAnalysisAgent:
             # 调用LLM
             response = await self.llm_client.generate(
                 prompt,
+                system_prompt=ANALYSIS_SYSTEM_PROMPT,
+                require_real_provider=True,
                 max_tokens=8000,
                 temperature=0.3,
             )

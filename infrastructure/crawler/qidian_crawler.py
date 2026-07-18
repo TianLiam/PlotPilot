@@ -1,5 +1,5 @@
 import logging
-import json
+import re
 from typing import List, Dict, Any
 from datetime import datetime
 
@@ -9,77 +9,122 @@ logger = logging.getLogger(__name__)
 
 
 class QidianCrawler(BaseCrawler):
-    BASE_URL = "https://www.qidian.com"
-    RANKING_API = "https://api.qidian.com/api/rank/h5"
+    BASE_URL = "https://m.qidian.com"
+    RANKING_PAGE = f"{BASE_URL}/rank/yuepiao/"
+    RANKING_API = f"{BASE_URL}/majax/rank/yuepiaolist"
+    MOBILE_USER_AGENT = (
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "
+        "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+    )
 
     CATEGORIES = {
-        "玄幻": {"type": 1, "subType": 1},
-        "奇幻": {"type": 1, "subType": 2},
-        "武侠": {"type": 2, "subType": 1},
-        "仙侠": {"type": 2, "subType": 2},
-        "都市": {"type": 4, "subType": 1},
-        "历史": {"type": 5, "subType": 1},
-        "游戏": {"type": 6, "subType": 1},
-        "科幻": {"type": 7, "subType": 1},
-        "悬疑": {"type": 8, "subType": 1},
-        "军事": {"type": 9, "subType": 1},
+        "玄幻": 21,
+        "奇幻": 1,
+        "武侠": 2,
+        "仙侠": 22,
+        "都市": 4,
+        "历史": 5,
+        "游戏": 7,
+        "科幻": 9,
+        "悬疑": 10,
+        "军事": 6,
     }
+
+    async def _ensure_csrf_token(self) -> str:
+        existing = self.client.cookies.get("_csrfToken") or ""
+        if existing:
+            return existing
+        headers = self._get_default_headers(referer=self.BASE_URL)
+        headers["User-Agent"] = self.MOBILE_USER_AGENT
+        response = await self.safe_request("get", self.RANKING_PAGE, headers=headers, max_retries=2)
+        if response is None:
+            return ""
+        token = response.cookies.get("_csrfToken") or self.client.cookies.get("_csrfToken") or ""
+        if not token:
+            set_cookie = response.headers.get("set-cookie", "")
+            match = re.search(r"(?:^|[,;]\s*)_csrfToken=([^;,]+)", set_cookie)
+            token = match.group(1) if match else ""
+        if not token:
+            self.last_error = "Qidian ranking page did not issue a CSRF token"
+        return token
 
     async def crawl_ranking(self, category: str, limit: int = 20) -> List[Dict[str, Any]]:
         results = []
-        category_info = self.CATEGORIES.get(category)
-        if not category_info:
+        category_id = self.CATEGORIES.get(category)
+        if not category_id:
             logger.warning(f"Unknown category: {category}")
             return results
 
         try:
-            params = {
-                "type": category_info["type"],
-                "subType": category_info["subType"],
-                "pageNum": 1,
-                "pageSize": limit,
-            }
-
-            headers = self._get_default_headers(referer=self.BASE_URL)
-            response = await self.safe_request("get", self.RANKING_API, params=params, headers=headers)
-            
-            if response is None:
+            token = await self._ensure_csrf_token()
+            if not token:
                 return results
 
-            data = response.json()
-            
-            if data.get("code") != 0 or not data.get("data"):
-                logger.warning(f"Qidian API returned error: {data}")
-                return results
-
-            books = data["data"].get("books", [])
-            for rank, book in enumerate(books, 1):
-                result = {
-                    "platform": "qidian",
-                    "category": category,
-                    "rank": rank,
-                    "novel_name": self.clean_text(book.get("name")),
-                    "author": self.clean_text(book.get("author")),
-                    "description": self.clean_text(book.get("shortIntro")),
-                    "tags": ",".join(book.get("tags", [])),
-                    "word_count": self.parse_int(book.get("wordCount")),
-                    "popularity": self.parse_int(book.get("totalClick")),
-                    "score": self.parse_float(book.get("rating", {}).get("score", 0)),
-                    "comments": self.parse_int(book.get("totalRecommend")),
-                    "favorites": self.parse_int(book.get("collectCount")),
-                    "collected_at": datetime.utcnow(),
-                    "extra_data": {
-                        "source": "qidian_api",
-                        "book_id": book.get("bookId"),
-                        "url": f"{self.BASE_URL}/book/{book.get('bookId')}",
-                    },
+            headers = self._get_default_headers(referer=self.RANKING_PAGE)
+            headers["User-Agent"] = self.MOBILE_USER_AGENT
+            page_num = 1
+            while len(results) < limit:
+                params = {
+                    "gender": "male",
+                    "catId": category_id,
+                    "pageNum": page_num,
+                    "_csrfToken": token,
                 }
-                results.append(result)
+                response = await self.safe_request(
+                    "get", self.RANKING_API, params=params, headers=headers, max_retries=2
+                )
+                if response is None:
+                    break
+
+                data = response.json()
+                if data.get("code") != 0 or not isinstance(data.get("data"), dict):
+                    self.last_error = f"Qidian API error: {data.get('msg', 'unknown error')}"
+                    logger.warning(self.last_error)
+                    break
+
+                books = data["data"].get("records", [])
+                if not books:
+                    break
+
+                for book in books:
+                    book_id = str(book.get("bid") or "")
+                    actual_category = self.clean_text(book.get("cat")) or category
+                    result = {
+                        "platform": "qidian",
+                        "category": actual_category,
+                        "rank": self.parse_int(book.get("rankNum"), len(results) + 1),
+                        "novel_name": self.clean_text(book.get("bName")),
+                        "author": self.clean_text(book.get("bAuth")),
+                        "description": self.clean_text(book.get("desc")),
+                        "tags": ",".join(filter(None, [actual_category, self.clean_text(book.get("subCat"))])),
+                        "word_count": self.parse_int(book.get("cnt")),
+                        "popularity": self.parse_int(book.get("rankCnt")),
+                        "score": 0.0,
+                        "comments": 0,
+                        "favorites": 0,
+                        "collected_at": datetime.utcnow(),
+                        "extra_data": {
+                            "source": "qidian_mobile_api",
+                            "book_id": book_id,
+                            "category_id": book.get("catId"),
+                            "subcategory_id": book.get("subCatId"),
+                            "ranking_metric": "monthly_tickets",
+                            "url": f"{self.BASE_URL}/book/{book_id}.html" if book_id else "",
+                        },
+                    }
+                    results.append(result)
+                    if len(results) >= limit:
+                        break
+
+                if data["data"].get("isLast") or len(books) == 0:
+                    break
+                page_num += 1
 
             logger.info(f"Crawled {len(results)} novels from Qidian category: {category}")
             await self._delay()
 
         except Exception as e:
+            self.last_error = f"{type(e).__name__}: {e}"
             logger.error(f"Failed to crawl Qidian ranking for {category}: {e}")
 
         return results

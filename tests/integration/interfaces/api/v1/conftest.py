@@ -21,15 +21,28 @@ SCHEMA_PATH = (
 )
 
 
-@pytest.fixture
-def db():
-    """In-memory database fixture."""
-    db = DatabaseConnection(":memory:")
-    schema_sql = SCHEMA_PATH.read_text(encoding="utf-8")
-    db.get_connection().executescript(schema_sql)
-    db.get_connection().commit()
+@pytest.fixture(autouse=True)
+def db(tmp_path, monkeypatch):
+    """File-backed database shared by the test and TestClient worker threads."""
+    db = DatabaseConnection(str(tmp_path / "api-integration.db"))
+
+    # get_database is imported by many route modules during app construction.
+    # Replacing only the function misses those bound references; replacing the
+    # singleton makes every already-imported get_database function resolve here.
+    import infrastructure.persistence.database.connection as connection_module
+    monkeypatch.setattr(connection_module, "_db_instance", db)
+
+    # These registries are process singletons. A singleton seeded against the
+    # previous test database must not claim that this fresh database is ready.
+    import infrastructure.ai.prompt_manager as prompt_manager_module
+    import infrastructure.ai.prompt_registry as prompt_registry_module
+    import infrastructure.ai.variable_registry as variable_registry_module
+    monkeypatch.setattr(prompt_manager_module, "_manager_instance", None)
+    monkeypatch.setattr(prompt_registry_module, "_registry_instance", None)
+    monkeypatch.setattr(variable_registry_module, "_registry_instance", None)
+
     yield db
-    db.close()
+    db.close_all()
 
 
 @pytest.fixture

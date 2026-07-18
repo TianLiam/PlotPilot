@@ -8,6 +8,7 @@ from apscheduler.triggers.cron import CronTrigger
 
 from infrastructure.persistence.database.connection import DatabaseConnection, get_database
 from infrastructure.persistence.database.market.sqlite_ranking_repository import SqliteRankingRepository
+from infrastructure.persistence.database.market.sqlite_hot_topic_repository import SqliteHotTopicRepository
 from infrastructure.persistence.database.market.sqlite_dynamic_template_repository import SqliteDynamicTemplateRepository
 from infrastructure.persistence.database.market.sqlite_snapshot_repository import (
     SqliteSnapshotRepository,
@@ -40,7 +41,7 @@ class MarketDiscoveryScheduler:
         
         ranking_crawler = RankingCrawlerService(ranking_repo)
         hot_topic_crawler = HotTopicCrawlerService(
-            SqliteRankingRepository(self.db)
+            SqliteHotTopicRepository(self.db)
         )
         
         return discovery_service, ranking_crawler, hot_topic_crawler
@@ -52,6 +53,8 @@ class MarketDiscoveryScheduler:
         """
         logger.info("Starting daily crawl task...")
         
+        ranking_crawler = None
+        hot_topic_crawler = None
         try:
             _, ranking_crawler, hot_topic_crawler = self._get_services()
             
@@ -68,53 +71,31 @@ class MarketDiscoveryScheduler:
             # 3. 保存榜单快照（用于趋势分析）
             logger.info("Saving ranking snapshots...")
             snapshot_repo = SqliteSnapshotRepository(self.db)
-            today = datetime.utcnow().strftime("%Y-%m-%d")
-            
-            saved_count = 0
-            for platform, rankings in rankings_result.items():
-                for category, items in rankings.items() if isinstance(rankings, dict) else [(platform, rankings)]:
-                    if items:
-                        snapshot_items = []
-                        for item in items[:50]:  # 只保存前50名
-                            snapshot_items.append({
-                                "novel_id": str(item.get("novel_id") or item.get("bookId", "")),
-                                "novel_name": item.get("novel_name") or item.get("bookName", ""),
-                                "author": item.get("author") or item.get("authorName", ""),
-                                "rank": item.get("rank") or item.get("index", 0),
-                                "word_count": item.get("word_count") or item.get("wordCount", 0),
-                                "popularity": item.get("popularity") or item.get("totalRead", 0),
-                                "score": item.get("score", 0.0),
-                            })
-                        
-                        await snapshot_repo.save_ranking_snapshot(
-                            type('Snapshot', (), {
-                                'snapshot_date': today,
-                                'platform': platform,
-                                'category': category,
-                                'items': [
-                                    type('Item', (), {
-                                        'platform': platform,
-                                        'category': category,
-                                        'novel_id': str(i.get("novel_id", "")),
-                                        'novel_name': i.get("novel_name", ""),
-                                        'author': i.get("author", ""),
-                                        'rank': i.get("rank", 0),
-                                        'word_count': i.get("word_count", 0),
-                                        'popularity': i.get("popularity", 0),
-                                        'score': i.get("score", 0.0),
-                                    })() for i in snapshot_items
-                                ],
-                                'total_count': len(snapshot_items),
-                                'collected_at': datetime.utcnow(),
-                            })()
-                        )
-                        saved_count += 1
+            trend_service = TrendAnalysisService(
+                snapshot_repo,
+                SqliteTrendAlertRepository(self.db),
+            )
+            saved_count = await trend_service.save_crawl_snapshots(rankings_result)
             
             logger.info(f"Saved {saved_count} snapshots")
             logger.info("Daily crawl task completed successfully")
+            errors = {**ranking_crawler.last_errors, **hot_topic_crawler.last_errors}
+            return {
+                "status": "partial" if errors else "success",
+                "ranking_count": sum(len(v) for v in rankings_result.values()),
+                "hot_topic_count": sum(len(v) for v in hot_topics_result.values()),
+                "snapshot_count": saved_count,
+                "errors": errors,
+            }
             
         except Exception as e:
             logger.error(f"Daily crawl task failed: {e}")
+            return {"status": "failed", "error": str(e)}
+        finally:
+            if ranking_crawler:
+                await ranking_crawler.close()
+            if hot_topic_crawler:
+                await hot_topic_crawler.close()
     
     async def daily_trend_analysis_task(self):
         """每日趋势分析任务
@@ -156,7 +137,7 @@ class MarketDiscoveryScheduler:
             discovery_service, _, _ = self._get_services()
             
             result = await discovery_service.run_daily_discovery(
-                platforms=["fanqie"],
+                platforms=["qidian"],
                 categories=["都市", "玄幻", "言情", "仙侠"],
                 top_n=3,
             )
@@ -165,6 +146,9 @@ class MarketDiscoveryScheduler:
             
         except Exception as e:
             logger.error(f"Daily discovery task failed: {e}")
+        finally:
+            if 'discovery_service' in locals():
+                await discovery_service.close()
     
     async def weekly_deep_discovery_task(self):
         """每周深度发现任务
@@ -177,7 +161,7 @@ class MarketDiscoveryScheduler:
             discovery_service, _, _ = self._get_services()
             
             result = await discovery_service.run_daily_discovery(
-                platforms=["fanqie"],
+                platforms=["qidian"],
                 categories=["都市", "玄幻", "言情", "仙侠", "科幻", "历史"],
                 top_n=5,
             )
@@ -186,6 +170,9 @@ class MarketDiscoveryScheduler:
             
         except Exception as e:
             logger.error(f"Weekly deep discovery task failed: {e}")
+        finally:
+            if 'discovery_service' in locals():
+                await discovery_service.close()
     
     def setup_jobs(self):
         """配置定时任务"""

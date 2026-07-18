@@ -64,6 +64,40 @@ export interface MarketAnalysis {
   analysis_date: string
 }
 
+export interface TrendHistoryPoint {
+  date: string
+  score: number
+  top_rank?: number
+  novel_count: number
+}
+
+export interface TrendDashboardRow {
+  genre: string
+  platform: string
+  current_score: number
+  current_top_rank: number
+  change_value: number
+  history_points: number
+  history: TrendHistoryPoint[]
+}
+
+export interface TrendDashboard {
+  days: number
+  data_state: 'empty' | 'single_snapshot' | 'historical'
+  snapshot_count: number
+  series_count: number
+  rising: TrendDashboardRow[]
+  declining: TrendDashboardRow[]
+  hot: TrendDashboardRow[]
+  line_series: Array<{
+    platform: string
+    genre: string
+    data_points: TrendHistoryPoint[]
+  }>
+  heatmap: Array<{ platform: string; genre: string; score: number }>
+  hot_tags: Array<{ name: string; value: number }>
+}
+
 export const marketApi = {
   getGoldenFingers(genre?: string, limit?: number) {
     const params: Record<string, string | number> = {}
@@ -117,6 +151,10 @@ export const marketApi = {
 
   getMarketAnalysis() {
     return apiClient.get<MarketAnalysis[]>('/market/analyzer/trend-analysis')
+  },
+
+  getTrendDashboard(days = 30) {
+    return apiClient.get<TrendDashboard>('/market/trend/dashboard', { params: { days } })
   },
 
   crawlRankings(platform?: string) {
