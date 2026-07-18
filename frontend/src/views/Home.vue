@@ -287,14 +287,10 @@
 
         <!-- 底部版权 -->
         <footer class="home-footer">
-          <span class="footer-brand">PlotPilot</span>
+          <span class="footer-brand">{{ BRAND.productName }}</span>
           <span class="footer-sep">·</span>
-          <span class="footer-sub">墨枢</span>
-          <span class="footer-text">由 PlotPilot（墨枢）团队倾力开发</span>
-          <a class="footer-link" href="https://www.douyin.com/user/MS4wLjABAAAA91472902104" target="_blank" rel="noopener noreferrer">
-            抖音：林亦 91472902104
-          </a>
-          <span class="footer-text">每晚 9 点随缘直播</span>
+          <span class="footer-sub">{{ BRAND.chineseName }}</span>
+          <span class="footer-text">{{ BRAND.credit }}</span>
         </footer>
       </div>
     </div>
@@ -426,6 +422,7 @@ import { useStatsStore } from '@/stores/statsStore'
 import { storageKeys } from '@/config/storageKeys'
 import { readStorageBoolean } from '@/utils/storage'
 import { formatApiError } from '@/utils/apiError'
+import { BRAND } from '@/constants/brand'
 import {
   NOVEL_LENGTH_TIER_OPTIONS,
   getNovelStageLabel,

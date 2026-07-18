@@ -181,6 +181,36 @@ export function peekRecentFeedbackIncidents(): readonly FeedbackIncidentPayload[
   return ringBuffer.slice()
 }
 
+export function clearFeedbackIncidents(filterFn?: (inc: FeedbackIncidentPayload) => boolean): void {
+  if (filterFn) {
+    const before = ringBuffer.length
+    ringBuffer.filter(filterFn)
+    const after = ringBuffer.length
+    if (before !== after) ringBuffer.splice(0, ringBuffer.length, ...ringBuffer.filter(filterFn))
+  } else {
+    ringBuffer.length = 0
+  }
+}
+
+export function clearBackendUnavailableIncidents(): void {
+  const before = ringBuffer.length
+  ringBuffer.splice(0, ringBuffer.length, ...ringBuffer.filter(inc => {
+    const ax = inc.meta.axios
+    if (!ax) return true
+    if (ax.status === 502 || ax.status === 503 || ax.status === 504) return false
+    if (ax.code === 'ERR_NETWORK' || ax.code === 'ERR_CONNECTION_REFUSED') return false
+    return true
+  }))
+  const after = ringBuffer.length
+  if (before > after) {
+    notification.info({
+      title: '后端连接已恢复',
+      description: `已清理 ${before - after} 条后端不可用时的历史错误`,
+      duration: 3000,
+    })
+  }
+}
+
 export function exportRecentFeedbackBundle(): void {
   void (async () => {
     const mod = await import('../api/feedbackDiagnostic')

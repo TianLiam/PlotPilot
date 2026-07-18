@@ -266,6 +266,7 @@ import { novelApi, type NovelDTO } from '../api/novel'
 import { marketApi, type GenreRecommendation } from '@/api/market'
 import { getNovelStageLabel, getNovelStageTagType } from '@/domain/novel'
 import { parseGenreWorldFromPremise } from '@/utils/premisePresets'
+import { BRAND } from '@/constants/brand'
 
 const router = useRouter()
 
@@ -341,7 +342,7 @@ const guidanceTitle = computed(() => hasNovels.value
   : '先建立故事核心，再让系统接住复杂度')
 const guidanceDescription = computed(() => hasNovels.value
   ? '动笔前快速核对本章会改变什么：谁获得了新信息、哪条因果继续推进、哪些伏笔需要保持可见。'
-  : '不必一次填满所有设定。先确定主角、核心欲望与主要阻力，墨枢会沿着创作过程逐步组织叙事状态。')
+  : `不必一次填满所有设定。先确定主角、核心欲望与主要阻力，${BRAND.chineseName}会沿着创作过程逐步组织叙事状态。`)
 
 async function fetchNovels() {
   loading.value = true

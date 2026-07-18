@@ -186,7 +186,7 @@ def create_app(app_settings: BackendSettings | None = None) -> FastAPI:
     created = FastAPI(
         title="PlotPilot API",
         version=app_settings.release_version,
-        description="PlotPilot（墨枢）AI 小说创作平台 API",
+        description="Narra（叙界）AI 小说创作平台 API",
         redirect_slashes=True,
         lifespan=lifespan,
     )

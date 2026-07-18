@@ -1,7 +1,7 @@
 import axios, { type AxiosError, type AxiosRequestConfig } from 'axios'
 
 import { runtimePerformance } from '../config/performance'
-import { emitAxiosFeedbackIncident } from '../support/feedbackNotifier'
+import { clearBackendUnavailableIncidents, emitAxiosFeedbackIncident } from '../support/feedbackNotifier'
 import { apiRoutes } from './endpoints'
 
 // ---------------------------------------------------------------------------
@@ -276,10 +276,22 @@ axiosInstance.interceptors.request.use(async config => {
   return config
 })
 
+let _hasSeenBackendUnavailable = false
+
 axiosInstance.interceptors.response.use(
-  response => response.data,
+  response => {
+    if (_hasSeenBackendUnavailable) {
+      _hasSeenBackendUnavailable = false
+      clearBackendUnavailableIncidents()
+    }
+    return response.data
+  },
   err => {
     const axErr = err as AxiosError
+    const status = axErr.response?.status
+    if (status === 502 || status === 503 || status === 504 || axErr.code === 'ERR_NETWORK') {
+      _hasSeenBackendUnavailable = true
+    }
     const cfg = axErr.config as (AxiosRequestConfig & { silentGlobalFeedback?: boolean }) | undefined
     if (
       axErr.code === 'ERR_CANCELED' ||

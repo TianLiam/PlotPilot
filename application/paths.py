@@ -12,7 +12,7 @@ from infrastructure.runtime.data_directory_environment import (
 
 logger = logging.getLogger(__name__)
 
-# application/paths.py → PlotPilot（墨枢）仓库根目录
+# application/paths.py → Narra（叙界）仓库根目录
 PLOTPILOT_ROOT = Path(__file__).resolve().parents[1]
 
 # 旧版壳/脚本仍可能注入 LEGACY_PROD_DATA_DIR_ENV，读取时作为回退。

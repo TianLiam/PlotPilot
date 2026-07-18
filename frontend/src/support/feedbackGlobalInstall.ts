@@ -2,6 +2,7 @@ import type { App, ComponentPublicInstance } from 'vue'
 
 import { buildIncidentFromUnknown } from './feedbackIncident'
 import {
+  clearBackendUnavailableIncidents,
   emitFeedbackIncident,
   emitManualIncident,
   exportRecentFeedbackBundle,
@@ -68,6 +69,9 @@ export function installGlobalFeedbackIncidentCapture(app: App): void {
         }))
       },
       exportRecentBundle: exportRecentFeedbackBundle,
+      clearBackendUnavailableIncidents,
     }
   }
 }
+
+export { clearBackendUnavailableIncidents }

@@ -5,8 +5,8 @@
       <div class="brand-logo">
         <span class="logo-icon">✦</span>
         <div class="brand-text">
-          <h1 class="brand-name">PlotPilot</h1>
-          <p class="brand-slogan">墨枢 · 作者的领航员</p>
+          <h1 class="brand-name">{{ BRAND.productName }}</h1>
+          <p class="brand-slogan">{{ BRAND.chineseName }} · {{ BRAND.tagline }}</p>
         </div>
       </div>
       <button
@@ -188,6 +188,7 @@ import { runtimePerformance } from '@/config/performance'
 import { readStorageBoolean, writeStorageBoolean } from '@/utils/storage'
 import { getNovelStageLabel } from '@/domain/novel'
 import { useRouter } from 'vue-router'
+import { BRAND } from '@/constants/brand'
 
 const router = useRouter()
 

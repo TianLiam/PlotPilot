@@ -1,4 +1,4 @@
-"""PlotPilot（墨枢）命令行入口。"""
+"""Narra（叙界）命令行入口。"""
 import sys
 import argparse
 
@@ -8,7 +8,7 @@ def main(args=None):
     if args is None:
         args = sys.argv[1:]
 
-    parser = argparse.ArgumentParser(description='PlotPilot（墨枢）CLI')
+    parser = argparse.ArgumentParser(description='Narra（叙界）CLI')
     subparsers = parser.add_subparsers(dest='command', help='可用命令')
 
     # serve 命令

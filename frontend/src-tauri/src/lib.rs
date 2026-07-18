@@ -23,8 +23,8 @@ use std::time::Duration;
 use backend::BackendManager;
 use tauri::{Manager, WindowEvent};
 
-const BRAND_DISPLAY_NAME: &str = "PlotPilot · 墨枢";
-const BRAND_CREDIT: &str = "由 PlotPilot（墨枢）团队倾力开发";
+const BRAND_DISPLAY_NAME: &str = "Narra · 叙界";
+const BRAND_CREDIT: &str = "由 Narra（叙界）团队倾力开发";
 
 /// 防止重复 spawn 多条优雅退出线程（用户连点关闭）
 static GRACEFUL_SHUTDOWN_STARTED: AtomicBool = AtomicBool::new(false);

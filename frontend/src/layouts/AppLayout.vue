@@ -3,13 +3,13 @@
     <header class="app-header">
       <div class="header-inner">
         <button class="brand" type="button" aria-label="返回创作总览" @click="goHome">
-          <span class="brand-logo" aria-hidden="true">墨</span>
+          <span class="brand-logo" aria-hidden="true">叙</span>
           <span class="brand-copy">
             <span class="brand-line">
-              <strong class="brand-name">墨枢</strong>
-              <span class="brand-product">PlotPilot</span>
+              <strong class="brand-name">{{ BRAND.chineseName }}</strong>
+              <span class="brand-product">{{ BRAND.productName }}</span>
             </span>
-            <span class="brand-tagline">长篇叙事引擎</span>
+            <span class="brand-tagline">{{ BRAND.tagline }}</span>
           </span>
         </button>
 
@@ -60,6 +60,7 @@ import { h } from 'vue'
 import { useRouter } from 'vue-router'
 import { NIcon } from 'naive-ui'
 import { useAppSettingsShellStore } from '@/stores/appSettingsShellStore'
+import { BRAND } from '@/constants/brand'
 
 const router = useRouter()
 const appSettingsShell = useAppSettingsShellStore()

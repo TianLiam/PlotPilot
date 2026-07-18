@@ -15,6 +15,8 @@ declare global {
         detail_length: number
       }>
       exportRecentBundle: () => void
+      /** 清除后端不可用时的历史错误（502/503/504/网络错误） */
+      clearBackendUnavailableIncidents: () => void
     }
   }
 }
