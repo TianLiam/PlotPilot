@@ -121,3 +121,28 @@ templates:
     recommended_sections: 10
     twist_design: "终极反转：仇人也有自己的苦衷？不，坚定复仇"
     taboo: "不写血腥复仇，靠智慧和信息差取胜"
+
+  - id: creepy_realistic
+    name: 细思极恐悬疑
+    name_en: creepy_realistic
+    description: 现实向细思极恐短篇，日常场景下的人性阴谋与双重反转
+    tags:
+      - 悬疑
+      - 细思极恐
+      - 现实向
+      - 人性反转
+    core_appeal: "日常场景中埋藏的细密线索，读完脊背发凉的双重反转"
+    classic_tropes:
+      - "日常反常——家中物品位置不对、监控时间缺失、短信记录异常"
+      - "人为阴谋——所有诡异现象背后都是人为设计，无鬼怪"
+      - "双重反转——表层真相被推翻，底层真相更细思极恐"
+      - "伏笔密集——前文每个细节都是钩子，结尾全部回收"
+    character_archetypes:
+      - "主角：普通人，因一件小事察觉异常，逐步陷入真相"
+      - "反派：熟人/身边人，表面无害实则精心布局"
+      - "工具人：最多1个，提供关键信息或制造误导"
+    pacing_notes: "300字强钩子开篇，每800字一条新线索，五段式结构，结尾留白"
+    recommended_words: 10000
+    recommended_sections: 7
+    twist_design: "双重反转：第一层假象误导→线索矛盾升级→第二层真相颠覆"
+    taboo: "禁止封建鬼怪、灵异、血腥刑侦；全部人为阴谋；不写真实案件"

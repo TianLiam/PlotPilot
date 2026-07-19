@@ -1,0 +1,31 @@
+name: 细思极恐悬疑规划
+category: planning
+source: infrastructure/ai/prompt_packages/nodes/planning-creepy-suspense
+description: 现实向细思极恐悬疑专用规划：五段式结构，人为阴谋，双重反转
+builtin: true
+tags:
+- 悬疑
+- 细思极恐
+- 现实向
+- 五段式
+- 规划
+output_format: json
+variables:
+- name: premise
+  desc: 用户给的故事梗概（300-500字）
+  type: string
+  required: true
+- name: genre_tags
+  desc: 题材标签（如悬疑、细思极恐、现实向、日常悬疑）
+  type: string
+  required: true
+- name: target_words
+  desc: 目标字数（8000-12000 字）
+  type: integer
+  required: true
+- name: target_sections
+  desc: 目标节数（7-9 节，每节约 1500 字）
+  type: integer
+  required: true
+id: planning-creepy-suspense
+sort_order: 210

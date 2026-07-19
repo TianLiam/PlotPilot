@@ -1,0 +1,40 @@
+name: 细思极恐悬疑正文生成
+category: generation
+source: infrastructure/ai/prompt_packages/nodes/chapter-generation-creepy
+description: 现实向细思极恐悬疑专用正文生成：五段式落地，禁用AI腔，感官细节替代心理描写
+builtin: true
+tags:
+- 短篇
+- 细思极恐
+- 悬疑
+- 正文生成
+- 第一人称
+- 红线prompt
+output_format: text
+variables:
+- name: premise
+  desc: 故事梗概（用于把握全局基调）
+  type: string
+  required: true
+- name: section_outline
+  desc: 当前节点大纲（含本节剧情点、结尾钩子、目标字数）
+  type: string
+  required: true
+- name: prev_section_ending
+  desc: 上一节结尾原文（用于衔接，首节为空字符串）
+  type: string
+  default: ''
+- name: target_words
+  desc: 本节目标字数（约1500字）
+  type: integer
+  required: true
+- name: section_number
+  desc: 节号（如 1、2、3，对应章节标注【1】【2】【3】）
+  type: integer
+  required: true
+- name: act_name
+  desc: 当前所属段落名（act1/act2/act3/act4/act5）
+  type: string
+  required: true
+id: chapter-generation-creepy
+sort_order: 211

@@ -155,3 +155,52 @@ async def _call_llm_for_submission_meta(full_content: str, premise: str) -> Subm
     except Exception as e:
         logger.warning("LLM 生成投稿元信息失败，返回空值: %s", e)
         return SubmissionMetaResponse()
+
+
+class HookExtractionResponse(BaseModel):
+    """引流钩子提取结果"""
+    hook_content: str = ""  # 引流正文（知乎格式）
+    hook_word_count: int = 0  # 引流字数
+    hook_end_chapter: int = 0  # 引流到第几节
+    total_word_count: int = 0  # 全文字数
+    actual_ratio: float = 0.0  # 实际比例
+    hook_type: str = "未知"  # 钩子类型
+    hook_snippet: str = ""  # 卡点最后100字
+    paywall_chapter: int = 1  # 付费墙从第几节开始
+
+
+@router.get("/{novel_id}/hook")
+async def extract_hook(
+    novel_id: str,
+    ratio: float = 0.4,
+) -> HookExtractionResponse:
+    """提取知乎免费引流钩子（按比例 + 卡点优化）
+
+    默认按 40% 比例提取，但在 30%-50% 区间内寻找最佳卡点（强钩子位置）。
+    卡点必须是章节结尾的悬念/反转，不能是平滑剧情的中段。
+    """
+    try:
+        from interfaces.api.dependencies import get_novel_repository, get_chapter_repository
+        from domain.novel.value_objects.novel_id import NovelId
+        from application.core.services.hook_extractor_service import HookExtractorService
+
+        novel_repo = get_novel_repository()
+        chapter_repo = get_chapter_repository()
+
+        novel = novel_repo.get_by_id(NovelId(novel_id))
+        if not novel:
+            raise HTTPException(status_code=404, detail=f"小说不存在: {novel_id}")
+
+        chapters = chapter_repo.list_by_novel(NovelId(novel_id))
+        if not chapters:
+            raise HTTPException(status_code=400, detail="还没有章节内容")
+
+        extractor = HookExtractorService()
+        result = extractor.extract_hook(chapters, ratio=ratio, novel_title=novel.title)
+        return HookExtractionResponse(**result)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("提取引流钩子失败: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"提取失败: {str(e)}")
