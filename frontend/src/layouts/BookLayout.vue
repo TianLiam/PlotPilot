@@ -52,7 +52,7 @@ watch(() => route.params.novelId, () => {
     </div>
 
     <main v-else class="book-content">
-      <slot />
+      <router-view />
     </main>
   </div>
 </template>
