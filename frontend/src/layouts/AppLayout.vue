@@ -2,45 +2,102 @@
   <div class="app-layout">
     <header class="app-header">
       <div class="header-inner">
+        <!-- 品牌 -->
         <button class="brand" type="button" aria-label="返回创作总览" @click="goHome">
           <span class="brand-logo" aria-hidden="true">叙</span>
           <span class="brand-copy">
             <span class="brand-line">
               <strong class="brand-name">{{ BRAND.chineseName }}</strong>
-              <span class="brand-product">{{ BRAND.productName }}</span>
+              <span class="pro-badge is-dot">PRO</span>
             </span>
-            <span class="brand-tagline">{{ BRAND.tagline }}</span>
+            <span class="brand-tagline">{{ BRAND.descriptor }}</span>
           </span>
         </button>
 
+        <span class="topbar-divider" aria-hidden="true" />
+
+        <!-- 主导航 -->
         <nav class="main-nav" aria-label="主导航">
-          <router-link
-            v-for="item in navItems"
-            :key="item.path"
-            :to="item.path"
-            class="nav-item"
-            active-class="is-active"
-          >
-            <span class="nav-icon" aria-hidden="true">
-              <component :is="item.icon" :size="17" />
-            </span>
-            <span class="nav-label">{{ item.label }}</span>
-            <span v-if="item.badge" class="nav-badge">{{ item.badge }}</span>
-          </router-link>
+          <template v-for="item in navItems" :key="item.path">
+            <n-dropdown
+              v-if="item.children && item.children.length"
+              trigger="hover"
+              placement="bottom-start"
+              :show-arrow="true"
+              :options="item.children"
+              @select="handleSubNavSelect"
+            >
+              <router-link
+                :to="item.path"
+                class="nav-item nav-item-dropdown"
+                active-class="is-active"
+                :class="{ 'is-active-group': isGroupActive(item.path) }"
+              >
+                <span class="nav-icon" aria-hidden="true">
+                  <component :is="item.icon" :size="16" />
+                </span>
+                <span class="nav-label">{{ item.label }}</span>
+                <span v-if="item.badge" class="nav-badge">{{ item.badge }}</span>
+                <span class="nav-dropdown-caret" aria-hidden="true">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </span>
+              </router-link>
+            </n-dropdown>
+            <router-link
+              v-else
+              :to="item.path"
+              class="nav-item"
+              active-class="is-active"
+            >
+              <span class="nav-icon" aria-hidden="true">
+                <component :is="item.icon" :size="16" />
+              </span>
+              <span class="nav-label">{{ item.label }}</span>
+              <span v-if="item.badge" class="nav-badge">{{ item.badge }}</span>
+            </router-link>
+          </template>
         </nav>
 
+        <!-- 右侧：搜索 + 引擎状态 + 操作 + 用户 -->
         <div class="header-right">
-          <n-button
-            quaternary
-            class="settings-button"
-            aria-label="应用设置"
-            @click="appSettingsShell.open()"
+          <div class="cmd-search" role="button" tabindex="0" aria-label="全局搜索" @click="handleSearch" @keydown.enter="handleSearch">
+            <span class="cmd-search-icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            </span>
+            <span class="cmd-search-text">搜索作品、章节、角色…</span>
+            <span class="cmd-search-kbd">⌘ K</span>
+          </div>
+
+          <span class="engine-status" :class="engineStatusClass" :title="engineStatusTitle">
+            <span class="engine-dot" aria-hidden="true" />
+            <span class="engine-label">{{ engineStatusText }}</span>
+          </span>
+
+          <button class="topbar-icon-btn" type="button" aria-label="帮助中心" @click="handleHelp">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .8-1 1.7v.5"/><circle cx="12" cy="17" r="0.6" fill="currentColor"/></svg>
+          </button>
+
+          <button class="topbar-icon-btn" type="button" aria-label="通知中心" @click="handleNotifications">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 19a2 2 0 0 0 4 0"/></svg>
+            <span class="topbar-icon-dot" aria-hidden="true" />
+          </button>
+
+          <span class="topbar-divider" aria-hidden="true" />
+
+          <n-dropdown
+            trigger="click"
+            placement="bottom-end"
+            :options="userMenuOptions"
+            @select="handleUserMenuSelect"
           >
-            <template #icon>
-              <n-icon :component="IconSettings" :size="19" />
-            </template>
-            <span class="settings-label">设置</span>
-          </n-button>
+            <div class="user-menu-trigger" role="button" tabindex="0" aria-label="用户菜单">
+              <span class="user-avatar">墨</span>
+              <span class="user-name">墨作者</span>
+              <span class="user-caret">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              </span>
+            </div>
+          </n-dropdown>
         </div>
       </div>
     </header>
@@ -56,16 +113,21 @@
 </template>
 
 <script setup lang="ts">
-import { h } from 'vue'
-import { useRouter } from 'vue-router'
-import { NIcon } from 'naive-ui'
+import { h, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { NIcon, NDropdown, useMessage } from 'naive-ui'
+import type { DropdownOption } from 'naive-ui'
 import { useAppSettingsShellStore } from '@/stores/appSettingsShellStore'
+import { useThemeStore } from '@/stores/themeStore'
 import { BRAND } from '@/constants/brand'
 
 const router = useRouter()
+const route = useRoute()
 const appSettingsShell = useAppSettingsShellStore()
+const themeStore = useThemeStore()
+const message = useMessage()
 
-const svgIcon = (path: string) => () =>
+const svgIcon = (path: string, opts: Record<string, number | string> = {}) => () =>
   h('svg', {
     xmlns: 'http://www.w3.org/2000/svg',
     viewBox: '0 0 24 24',
@@ -76,23 +138,128 @@ const svgIcon = (path: string) => () =>
     'stroke-width': 1.8,
     'stroke-linecap': 'round',
     'stroke-linejoin': 'round',
+    ...opts,
   }, h('path', { d: path }))
 
 const IconDashboard = svgIcon('M4 4h6v6H4zM14 4h6v4h-6zM14 12h6v8h-6zM4 14h6v6H4z')
 const IconTrending = svgIcon('M4 17l5-5 4 3 7-8M15 7h5v5')
 const IconWorkshop = svgIcon('M5 3h10l4 4v14H5zM14 3v5h5M8 13h8M8 17h6')
 const IconLibrary = svgIcon('M4 5.5l5-1.5v15l-5 1.5zM9 4l6 1.5v15L9 19zM15 5.5l5-1.5v15l-5 1.5z')
-const IconSettings = svgIcon('M12 15.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM19.4 15a1.7 1.7 0 00.3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.6v.2h-4V21a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 00.3-1.9A1.7 1.7 0 003 14H2.8v-4H3a1.7 1.7 0 001.6-1 1.7 1.7 0 00-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 009 4.6 1.7 1.7 0 0010 3V2.8h4V3a1.7 1.7 0 001 1.6 1.7 1.7 0 001.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 00-.3 1.9 1.7 1.7 0 001.6 1h.2v4H21a1.7 1.7 0 00-1.6 1z')
+const IconFlame = svgIcon('M12 2c1 3 4 5 4 9a4 4 0 1 1-8 0c0-2 1-3 2-4-3 0-5 3-5 6a7 7 0 0 0 14 0c0-6-5-8-7-11z')
+const IconBolt = svgIcon('M13 2L3 14h8l-1 8 10-12h-8l1-8z')
+const IconBookOpen = svgIcon('M12 6v15M12 6s-2-2-6-2-4 1-4 1v14s1-1 4-1 4 1 6 2c2-1 2-2 6-2s4 1 4 1V5s-1-1-4-1-4 2-6 2z')
+
+function renderIcon(icon: () => ReturnType<typeof h>) {
+  return () => h(NIcon, { size: 16 }, { default: icon })
+}
+
+// 市场洞察二级导航
+const subNavOptions = [
+  { label: '爆款发现', key: '/market', icon: renderIcon(IconFlame) },
+  { label: '题材研究', key: '/market/research', icon: renderIcon(IconBolt) },
+  { label: '爆款拆书', key: '/market/deconstruction', icon: renderIcon(IconBookOpen) },
+]
 
 const navItems = [
   { path: '/dashboard', label: '创作总览', icon: IconDashboard, badge: '' },
-  { path: '/market', label: '市场洞察', icon: IconTrending, badge: '趋势' },
+  { path: '/market', label: '市场洞察', icon: IconTrending, badge: '趋势', children: subNavOptions },
   { path: '/studio', label: '创作工坊', icon: IconWorkshop, badge: '' },
   { path: '/library', label: '作品库', icon: IconLibrary, badge: '' },
 ]
 
+function isGroupActive(path: string): boolean {
+  if (path === '/market') return route.path.startsWith('/market')
+  return false
+}
+
+function handleSubNavSelect(key: string | number) {
+  router.push(String(key))
+}
+
+// 引擎状态（基于主题模式 + 假数据，后续可接入真实状态）
+const engineStatusClass = computed(() => {
+  return 'is-idle'
+})
+const engineStatusText = computed(() => '引擎就绪')
+const engineStatusTitle = computed(() => 'AI 引擎状态：就绪 · 点击查看详情')
+
 function goHome() {
   router.push('/dashboard')
+}
+
+function handleSearch() {
+  message.info('全局命令面板（⌘K）即将上线，敬请期待')
+}
+
+function handleHelp() {
+  message.info('帮助中心建设中')
+}
+
+function handleNotifications() {
+  message.info('暂无新通知')
+}
+
+function openSettings() {
+  appSettingsShell.open()
+}
+
+function cycleTheme() {
+  const order: Array<'light' | 'dark' | 'anchor'> = ['light', 'dark', 'anchor']
+  const cur = themeStore.mode === 'auto' ? 'light' : (themeStore.mode as 'light' | 'dark' | 'anchor')
+  const idx = order.indexOf(cur)
+  const next = order[(idx + 1) % order.length]
+  themeStore.setTheme(next)
+  const labelMap = { light: '亮色', dark: '暗色', anchor: '黑金' } as const
+  message.success(`已切换至${labelMap[next]}主题`)
+}
+
+function goLibrary() {
+  router.push('/library')
+}
+
+function goStudio() {
+  router.push('/studio')
+}
+
+const userMenuOptions = computed<DropdownOption[]>(() => [
+  {
+    label: '墨作者',
+    key: 'header',
+    type: 'render',
+    render: () =>
+      h('div', { style: 'padding: 8px 12px; min-width: 200px;' }, [
+        h('div', { style: 'font-size: 14px; font-weight: 700; color: var(--app-text-primary);' }, '墨作者'),
+        h('div', { style: 'font-size: 12px; color: var(--app-text-muted); margin-top: 2px;' }, 'Pro 会员 · 终身版'),
+      ]),
+  },
+  { type: 'divider', key: 'd1' },
+  { label: '我的作品库', key: 'library', icon: renderIcon(IconLibrary) },
+  { label: '新建作品', key: 'studio', icon: renderIcon(IconWorkshop) },
+  { type: 'divider', key: 'd2' },
+  { label: '外观主题', key: 'theme', icon: renderIcon(IconDashboard) },
+  { label: '偏好设置', key: 'settings', icon: renderIcon(IconDashboard) },
+  { type: 'divider', key: 'd3' },
+  { label: '关于 Narra · 叙界', key: 'about', icon: renderIcon(IconDashboard) },
+])
+
+function handleUserMenuSelect(key: string) {
+  switch (key) {
+    case 'library':
+      goLibrary()
+      break
+    case 'studio':
+      goStudio()
+      break
+    case 'theme':
+      cycleTheme()
+      break
+    case 'settings':
+      openSettings()
+      break
+    case 'about':
+      message.info(`${BRAND.displayName} · ${BRAND.tagline}`)
+      break
+  }
 }
 </script>
 
@@ -110,27 +277,27 @@ function goHome() {
   position: relative;
   z-index: 100;
   flex: 0 0 auto;
-  background: color-mix(in srgb, var(--app-surface) 92%, transparent);
+  background: color-mix(in srgb, var(--app-surface) 94%, transparent);
   border-bottom: 1px solid var(--app-border);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.32) inset;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.32) inset,
+    0 1px 2px rgba(15, 23, 42, 0.03);
   backdrop-filter: blur(18px);
 }
 
 .header-inner {
-  display: grid;
-  grid-template-columns: minmax(220px, 1fr) auto minmax(180px, 1fr);
+  display: flex;
   align-items: center;
-  height: 68px;
-  padding: 0 28px;
-  max-width: 1600px;
+  gap: 18px;
+  height: 60px;
+  padding: 0 24px;
+  max-width: 1680px;
   margin: 0 auto;
-  gap: 24px;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  justify-self: start;
   gap: 11px;
   padding: 0;
   color: inherit;
@@ -138,6 +305,7 @@ function goHome() {
   border: 0;
   cursor: pointer;
   text-align: left;
+  flex-shrink: 0;
 }
 
 .brand:focus-visible,
@@ -148,17 +316,20 @@ function goHome() {
 }
 
 .brand-logo {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   display: grid;
   place-items: center;
   background: linear-gradient(145deg, #232a42, #111827);
   color: #f8f4e8;
   font-family: var(--font-serif);
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 700;
-  border-radius: 10px;
-  box-shadow: 0 5px 14px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  border-radius: 9px;
+  box-shadow:
+    0 4px 12px rgba(15, 23, 42, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  flex-shrink: 0;
 }
 
 [data-theme='dark'] .brand-logo,
@@ -166,19 +337,23 @@ function goHome() {
   background: linear-gradient(145deg, color-mix(in srgb, var(--color-brand) 28%, #20283b), #0e1420);
 }
 
-.brand-copy,
-.brand-line {
-  display: flex;
-  align-items: center;
+[data-theme='anchor'] .brand-logo {
+  background: linear-gradient(145deg, color-mix(in srgb, var(--color-gold) 28%, #1a1610), #0a0c10);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(212, 168, 67, 0.25) inset;
 }
 
 .brand-copy {
+  display: flex;
   align-items: flex-start;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
 }
 
 .brand-line {
+  display: flex;
+  align-items: center;
   gap: 7px;
   line-height: 1.1;
 }
@@ -186,32 +361,25 @@ function goHome() {
 .brand-name {
   color: var(--app-text-primary);
   font-size: 16px;
-  letter-spacing: 0.02em;
-}
-
-.brand-product {
-  color: var(--app-text-muted);
-  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  font-family: var(--font-serif);
 }
 
 .brand-tagline {
   color: var(--app-text-muted);
   font-size: 10px;
-  letter-spacing: 0.08em;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-family: var(--font-mono);
 }
 
 .main-nav {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 2px;
-  padding: 4px;
-  background: var(--app-surface-subtle);
-  border: 1px solid var(--app-border);
-  border-radius: 13px;
+  flex-shrink: 0;
 }
 
 .nav-item {
@@ -219,31 +387,68 @@ function goHome() {
   display: flex;
   align-items: center;
   gap: 7px;
-  min-height: 36px;
+  min-height: 34px;
   padding: 0 13px;
-  border-radius: 9px;
-  color: var(--app-text-secondary);
+  border-radius: 8px;
+  color: var(--app-text-muted);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 550;
   text-decoration: none;
-  transition: color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+  transition: color 0.18s ease, background 0.18s ease;
 }
 
 .nav-item:hover {
   color: var(--app-text-primary);
+  background: var(--app-surface-subtle);
 }
 
 .nav-item.is-active {
   color: var(--color-brand);
-  background: var(--app-surface);
-  box-shadow: var(--app-shadow-sm);
   font-weight: 650;
+}
+
+.nav-item.is-active-group {
+  color: var(--color-brand);
+  font-weight: 650;
+}
+
+.nav-item.is-active::after,
+.nav-item.is-active-group::after {
+  content: '';
+  position: absolute;
+  left: 13px;
+  right: 13px;
+  bottom: -19px;
+  height: 2px;
+  background: var(--color-brand);
+  border-radius: 2px 2px 0 0;
+}
+
+.nav-item-dropdown {
+  padding-right: 10px;
+}
+
+.nav-dropdown-caret {
+  display: inline-flex;
+  opacity: 0.5;
+  margin-left: 1px;
+}
+
+.nav-item:hover .nav-dropdown-caret {
+  opacity: 0.85;
+}
+
+[data-theme='anchor'] .nav-item.is-active {
+  color: var(--color-gold);
+}
+[data-theme='anchor'] .nav-item.is-active::after {
+  background: var(--color-gold);
 }
 
 .nav-icon {
   display: flex;
   align-items: center;
-  opacity: 0.82;
+  opacity: 0.85;
 }
 
 .nav-badge {
@@ -259,15 +464,9 @@ function goHome() {
 
 .header-right {
   display: flex;
-  justify-content: flex-end;
-}
-
-.settings-button {
-  color: var(--app-text-secondary);
-}
-
-.settings-label {
-  font-size: 13px;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
 }
 
 .app-main {
@@ -276,6 +475,7 @@ function goHome() {
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  background: var(--app-page-bg);
 }
 
 .page-fade-enter-active,
@@ -293,43 +493,65 @@ function goHome() {
   transform: translateY(-3px);
 }
 
-@media (max-width: 1180px) {
+/* ── 响应式 ── */
+@media (max-width: 1280px) {
   .header-inner {
-    grid-template-columns: auto 1fr auto;
     gap: 14px;
-    padding: 0 20px;
+    padding: 0 18px;
   }
-
-  .brand-tagline,
-  .brand-product {
+  .brand-tagline {
     display: none;
   }
+  .cmd-search {
+    min-width: 220px;
+  }
+  .cmd-search-text {
+    max-width: 120px;
+  }
+}
 
-  .nav-item {
-    padding: 0 10px;
+@media (max-width: 1080px) {
+  .cmd-search {
+    min-width: 0;
+    width: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+  .cmd-search-text,
+  .cmd-search-kbd {
+    display: none;
+  }
+  .engine-status .engine-label {
+    display: none;
+  }
+  .user-menu-trigger .user-name {
+    display: none;
+  }
+  .user-menu-trigger {
+    padding: 3px;
   }
 }
 
 @media (max-width: 900px) {
   .header-inner {
-    height: 62px;
+    height: 56px;
     padding: 0 14px;
+    gap: 10px;
   }
-
-  .brand-copy,
-  .nav-label,
-  .settings-label {
+  .brand-copy {
     display: none;
   }
-
-  .main-nav {
-    justify-self: center;
+  .nav-label {
+    display: none;
   }
-
   .nav-item {
     padding: 0 11px;
   }
-
+  .nav-item.is-active::after {
+    left: 6px;
+    right: 6px;
+    bottom: -16px;
+  }
   .nav-badge {
     position: absolute;
     top: 3px;
@@ -341,31 +563,25 @@ function goHome() {
     border: 0;
     background: var(--color-brand);
   }
+  .topbar-divider {
+    display: none;
+  }
+  .engine-status,
+  .topbar-icon-btn[aria-label='帮助中心'] {
+    display: none;
+  }
 }
 
 @media (max-width: 560px) {
-  .header-inner {
-    grid-template-columns: auto 1fr;
-  }
-
-  .header-right {
-    display: none;
-  }
-
-  .brand-logo {
-    width: 34px;
-    height: 34px;
-  }
-
   .main-nav {
-    justify-self: end;
-    max-width: calc(100vw - 66px);
-    overflow-x: auto;
-    scrollbar-width: none;
+    margin-left: auto;
   }
-
-  .main-nav::-webkit-scrollbar {
-    display: none;
+  .header-right {
+    margin-left: 0;
+  }
+  .brand-logo {
+    width: 32px;
+    height: 32px;
   }
 }
 </style>

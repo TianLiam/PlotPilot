@@ -280,6 +280,7 @@ onMounted(() => {
   padding: 24px;
   max-width: 1400px;
   margin: 0 auto;
+  min-height: 100%;
 }
 
 .page-header {

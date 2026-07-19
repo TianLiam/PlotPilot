@@ -23,9 +23,8 @@
       <n-button
         v-for="maj in filteredMajors"
         :key="maj.id"
-        size="small"
+        size="tiny"
         round
-        strong
         :secondary="pickedMajorId !== maj.id"
         :type="pickedMajorId === maj.id ? 'primary' : 'default'"
         :disabled="disabled"
@@ -63,19 +62,19 @@
       <div class="mtp-classify-strip">
         <div class="mtp-classify-item">
           <span class="mtp-mini-label">市场大类</span>
-          <strong>{{ activeMajorLabel }}</strong>
+          <strong class="mtp-classify-value" :title="activeMajorLabel">{{ activeMajorLabel }}</strong>
         </div>
         <div class="mtp-classify-item">
           <span class="mtp-mini-label">细分主题</span>
-          <strong>{{ activeThemeLabel || '未选择' }}</strong>
+          <strong class="mtp-classify-value" :title="activeThemeLabel || '未选择'">{{ activeThemeLabel || '未选择' }}</strong>
         </div>
-        <div class="mtp-classify-item mtp-classify-item--wide">
+        <div class="mtp-classify-item">
           <span class="mtp-mini-label">赛道属性</span>
-          <strong>{{ activeMarketTrack || '未配置' }}</strong>
+          <strong class="mtp-classify-value" :title="activeMarketTrack || '未配置'">{{ activeMarketTrack || '未配置' }}</strong>
         </div>
         <div class="mtp-classify-item">
           <span class="mtp-mini-label">引擎大类</span>
-          <strong>{{ themeAgentKeyDisplay || 'theme:other' }}</strong>
+          <strong class="mtp-classify-value" :title="themeAgentKeyDisplay || 'theme:other'">{{ themeAgentKeyDisplay || 'theme:other' }}</strong>
         </div>
       </div>
 
@@ -358,14 +357,17 @@ const themeAgentKeyDisplay = computed(() => {
 .mtp-major-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  padding: 12px;
+  gap: 6px;
+  padding: 10px;
   border-radius: 12px;
   background: rgba(79, 70, 229, 0.04);
   border: 1px solid rgba(79, 70, 229, 0.12);
 }
 .mtp-major-chip {
   transition: transform 0.14s ease;
+  font-size: 12px !important;
+  padding: 0 10px !important;
+  height: 24px !important;
 }
 .mtp-major-chip:hover {
   transform: translateY(-1px);
@@ -376,44 +378,62 @@ const themeAgentKeyDisplay = computed(() => {
 }
 .mtp-theme-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  flex-wrap: nowrap;
+  gap: 6px;
   align-items: center;
-  padding-bottom: 4px;
+  padding: 4px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.mtp-theme-row::-webkit-scrollbar {
+  display: none;
 }
 .mtp-theme-chip {
-  padding: 0 6px !important;
+  padding: 0 8px !important;
   border-radius: 999px !important;
   font-weight: 600 !important;
+  font-size: 11px !important;
+  height: 22px !important;
+  flex-shrink: 0;
 }
 .mtp-mini-label {
   display: block;
-  margin-bottom: 3px;
-  font-size: 11px;
+  margin-bottom: 2px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--app-text-muted);
+  white-space: nowrap;
 }
 .mtp-classify-strip {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 10px;
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
 }
 .mtp-classify-item {
+  flex: 1 1 0;
   min-width: 0;
-  padding: 10px 12px;
-  border-radius: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
   background: var(--app-surface-subtle);
   border: 1px solid var(--app-border);
 }
-.mtp-classify-item--wide {
-  grid-column: span 2;
+.mtp-classify-value {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--app-text-primary);
 }
 .mtp-classify-item strong {
   display: block;
   min-width: 0;
-  overflow-wrap: anywhere;
-  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
   line-height: 1.45;
   color: var(--app-text-primary);
 }
@@ -425,14 +445,14 @@ const themeAgentKeyDisplay = computed(() => {
 .mtp-writing-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 .mtp-principle-input :deep(textarea) {
-  padding: 14px 16px;
+  padding: 10px 12px;
 }
 .mtp-principle-card {
   min-width: 0;
-  padding: 12px;
+  padding: 10px;
   border-radius: 8px;
   background: rgba(15, 23, 42, 0.025);
   border: 1px solid var(--app-border);
@@ -440,18 +460,18 @@ const themeAgentKeyDisplay = computed(() => {
 .mtp-principle-head {
   display: flex;
   align-items: flex-start;
-  gap: 9px;
-  margin-bottom: 7px;
+  gap: 8px;
+  margin-bottom: 6px;
 }
 .mtp-principle-index {
   flex: 0 0 auto;
-  width: 28px;
-  height: 22px;
-  border-radius: 7px;
+  width: 24px;
+  height: 20px;
+  border-radius: 6px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
   color: #2563eb;
   background: rgba(37, 99, 235, 0.09);
@@ -461,28 +481,33 @@ const themeAgentKeyDisplay = computed(() => {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 .mtp-principle-title strong {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--app-text-primary);
 }
 .mtp-principle-title span,
 .mtp-principle-note {
-  font-size: 11px;
+  font-size: 10px;
   line-height: 1.45;
   color: var(--app-text-muted);
 }
 .mtp-principle-note {
-  margin: 0 0 9px;
+  margin: 0 0 6px;
 }
 @media (max-width: 900px) {
-  .mtp-classify-strip,
+  .mtp-classify-strip {
+    flex-wrap: wrap;
+  }
+  .mtp-classify-item {
+    flex: 1 1 calc(50% - 3px);
+  }
   .mtp-writing-grid {
     grid-template-columns: 1fr;
   }
-  .mtp-classify-item--wide {
-    grid-column: auto;
+  .mtp-theme-row {
+    flex-wrap: wrap;
   }
 }
 .mtp-empty-search {

@@ -104,7 +104,7 @@
             <n-grid :cols="3" :x-gap="16" :y-gap="16" responsive="screen">
               <n-gi v-for="tool in currentStepInfo.tools" :key="tool.name">
                 <div class="tool-card" @click="(tool as any).action ? (tool as any).action() : goWorkbench()">
-                  <div class="tool-icon">{{ tool.name.slice(0, 1) }}</div>
+                  <div class="tool-icon">{{ tool.icon || tool.name.slice(0, 1) }}</div>
                   <div class="tool-name">{{ tool.name }}</div>
                   <div class="tool-desc">{{ tool.desc }}</div>
                   <n-button text type="primary" size="small" class="tool-btn">
@@ -167,13 +167,18 @@ const activeStep = ref('planning')
 const showNovelList = ref(false)
 const workflowPreview = ['选题策划', '人物设计', '世界观', '节奏规划', '章节写作', '质量检测']
 
+const goWorkbench = () => {
+  if (selectedNovel.value) {
+    router.push(`/book/${selectedNovel.value.slug}/workbench`)
+  }
+}
+
 const roadmapSteps = [
   {
     key: 'planning', title: '选题策划', desc: '确定题材与金手指', status: 'done', icon: '💡',
     todo: '完成题材研究，确定核心梗和金手指设计',
     tools: [
       { name: '题材研究', desc: '分析题材成功率与趋势', icon: '🔬', actionLabel: '去研究', action: () => router.push('/market/research') },
-      { name: '趋势大盘', desc: '查看市场热门趋势', icon: '📈', actionLabel: '去查看', action: () => router.push('/market/trends') },
       { name: '爆款拆书', desc: '拆解热门小说套路', icon: '🧬', actionLabel: '去拆书', action: () => router.push('/market/deconstruction') },
       { name: 'DNA模板库', desc: '复用爆款基因模板', icon: '🧪', actionLabel: '去浏览', action: () => router.push('/market') },
     ],
@@ -182,46 +187,46 @@ const roadmapSteps = [
     key: 'character', title: '人物设计', desc: '主角团与反派设定', status: 'current', icon: '👤',
     todo: '设计主角、配角、反派的人物档案和关系网',
     tools: [
-      { name: '人物档案', desc: '创建/编辑人物设定', icon: '👤', actionLabel: '去编辑' },
-      { name: '人物关系图', desc: '可视化人物关系网络', icon: '🕸️', actionLabel: '去查看' },
-      { name: '对话生成', desc: 'AI辅助生成人物对话', icon: '💬', actionLabel: '去生成' },
+      { name: '人物档案', desc: '创建/编辑人物设定', icon: '👤', actionLabel: '去编辑', action: () => selectedNovel.value && router.push(`/book/${selectedNovel.value.slug}/characters`) },
+      { name: '人物关系图', desc: '可视化人物关系网络', icon: '🕸️', actionLabel: '去查看', action: () => selectedNovel.value && router.push(`/book/${selectedNovel.value.slug}/character-graph`) },
+      { name: '对话生成', desc: 'AI辅助生成人物对话', icon: '💬', actionLabel: '去生成', action: goWorkbench },
     ],
   },
   {
     key: 'worldview', title: '世界观', desc: '设定与规则体系', status: 'pending', icon: '🌍',
     todo: '构建完整的世界观设定和力量体系',
     tools: [
-      { name: '世界设定', desc: '编辑世界观与规则', icon: '🌍', actionLabel: '去编辑' },
-      { name: '地点图谱', desc: '地图与场景管理', icon: '🗺️', actionLabel: '去查看' },
-      { name: '道具管理', desc: '法宝、道具设定', icon: '⚔️', actionLabel: '去管理' },
+      { name: '世界设定', desc: '编辑世界观与规则', icon: '🌍', actionLabel: '去编辑', action: () => selectedNovel.value && router.push(`/book/${selectedNovel.value.slug}/world`) },
+      { name: '地点图谱', desc: '地图与场景管理', icon: '🗺️', actionLabel: '去查看', action: () => selectedNovel.value && router.push(`/book/${selectedNovel.value.slug}/location-graph`) },
+      { name: '道具管理', desc: '法宝、道具设定', icon: '⚔️', actionLabel: '去管理', action: goWorkbench },
     ],
   },
   {
     key: 'pacing', title: '节奏规划', desc: '大纲与节拍表', status: 'pending', icon: '📊',
     todo: '制定全书大纲、幕次结构和章节节拍',
     tools: [
-      { name: '大纲规划', desc: '宏观结构与大纲', icon: '📋', actionLabel: '去规划' },
-      { name: '幕次管理', desc: '分幕与转折点设计', icon: '🎭', actionLabel: '去管理' },
-      { name: '节拍表', desc: '章节节拍与节奏控制', icon: '🥁', actionLabel: '去编排' },
+      { name: '大纲规划', desc: '宏观结构与大纲', icon: '📋', actionLabel: '去规划', action: () => selectedNovel.value && router.push(`/book/${selectedNovel.value.slug}/outline`) },
+      { name: '幕次管理', desc: '分幕与转折点设计', icon: '🎭', actionLabel: '去管理', action: () => selectedNovel.value && router.push(`/book/${selectedNovel.value.slug}/outline`) },
+      { name: '节拍表', desc: '章节节拍与节奏控制', icon: '🥁', actionLabel: '去编排', action: goWorkbench },
     ],
   },
   {
     key: 'writing', title: '章节写作', desc: '正文创作', status: 'pending', icon: '✍️',
     todo: '按节奏规划逐章创作正文内容',
     tools: [
-      { name: '章节列表', desc: '查看与管理所有章节', icon: '📄', actionLabel: '去写作' },
-      { name: 'AI续写', desc: 'AI辅助生成正文', icon: '🤖', actionLabel: '去生成' },
-      { name: '伏笔系统', desc: '管理伏笔与回收', icon: '🪝', actionLabel: '去管理' },
-      { name: '知识图谱', desc: '维护故事一致性', icon: '🧠', actionLabel: '去维护' },
+      { name: '章节列表', desc: '查看与管理所有章节', icon: '📄', actionLabel: '去写作', action: goWorkbench },
+      { name: 'AI续写', desc: 'AI辅助生成正文', icon: '🤖', actionLabel: '去生成', action: goWorkbench },
+      { name: '伏笔系统', desc: '管理伏笔与回收', icon: '🪝', actionLabel: '去管理', action: goWorkbench },
+      { name: '知识图谱', desc: '维护故事一致性', icon: '🧠', actionLabel: '去维护', action: () => selectedNovel.value && router.push(`/book/${selectedNovel.value.slug}/analytics`) },
     ],
   },
   {
     key: 'quality', title: '质量检测', desc: '审校与优化', status: 'pending', icon: '✅',
     todo: '检查行文质量、一致性和AI痕迹',
     tools: [
-      { name: '文风检测', desc: '检测文风一致性', icon: '📝', actionLabel: '去检测' },
-      { name: 'AI痕迹检测', desc: '降低AI痕迹', icon: '🔍', actionLabel: '去检测' },
-      { name: '一致性检查', desc: '人物/设定一致性', icon: '✅', actionLabel: '去检查' },
+      { name: '文风检测', desc: '检测文风一致性', icon: '📝', actionLabel: '去检测', action: () => selectedNovel.value && router.push(`/book/${selectedNovel.value.slug}/analytics`) },
+      { name: 'AI痕迹检测', desc: '降低AI痕迹', icon: '🔍', actionLabel: '去检测', action: () => selectedNovel.value && router.push(`/book/${selectedNovel.value.slug}/analytics`) },
+      { name: '一致性检查', desc: '人物/设定一致性', icon: '✅', actionLabel: '去检查', action: () => selectedNovel.value && router.push(`/book/${selectedNovel.value.slug}/analytics`) },
     ],
   },
 ]
@@ -323,12 +328,6 @@ const goLibrary = () => {
 
 const goCreate = () => {
   router.push('/home')
-}
-
-const goWorkbench = () => {
-  if (selectedNovel.value) {
-    router.push(`/book/${selectedNovel.value.slug}/workbench`)
-  }
 }
 
 onMounted(() => {

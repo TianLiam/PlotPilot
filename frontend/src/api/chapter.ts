@@ -74,8 +74,13 @@ export const chapterApi = {
    * List all chapters for a novel
    * GET /api/v1/novels/{novelId}/chapters
    */
-  listChapters: (novelId: string) =>
-    apiClient.get<ChapterDTO[]>(`/novels/${novelId}/chapters`) as Promise<ChapterDTO[]>,
+  listChapters: async (novelId: string): Promise<ChapterDTO[]> => {
+    const data = await apiClient.get<ChapterDTO[] | { value: ChapterDTO[]; Count: number }>(`/novels/${novelId}/chapters`)
+    if (Array.isArray(data)) {
+      return data
+    }
+    return data.value || []
+  },
 
   /**
    * Get the latest draft chapter for live preview fallback

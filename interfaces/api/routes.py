@@ -106,6 +106,7 @@ def register_api_routes(app: FastAPI) -> None:
     from interfaces.api.v1.market.research_routes import router as research_router
     from interfaces.api.v1.market.deconstruction_routes import router as deconstruction_router
     from interfaces.api.v1.pipeline_routes import router as pipeline_router
+    from interfaces.api.v1.dashboard import router as dashboard_router
 
     _include_registered_routes(
         app,
@@ -166,6 +167,7 @@ def register_api_routes(app: FastAPI) -> None:
             RouterRegistration(research_router, API_V1_PREFIX, ("market-research",)),
             RouterRegistration(deconstruction_router, API_V1_PREFIX, ("market-deconstruction",)),
             RouterRegistration(pipeline_router, API_V1_PREFIX, ("pipeline",)),
+            RouterRegistration(dashboard_router, API_V1_PREFIX, ("dashboard",)),
         ),
     )
 

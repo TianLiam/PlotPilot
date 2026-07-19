@@ -12,7 +12,6 @@ const CharacterGraph = () => import('../views/CharacterGraph.vue')
 const LocationGraph = () => import('../views/LocationGraph.vue')
 
 const Market = () => import('../views/Market.vue')
-const TrendsDashboard = () => import('../views/TrendsDashboard.vue')
 const NovelResearch = () => import('../views/NovelResearch.vue')
 const Deconstruction = () => import('../views/Deconstruction.vue')
 const DeconstructionDetail = () => import('../views/DeconstructionDetail.vue')
@@ -45,12 +44,6 @@ const router = createRouter({
           name: 'Market',
           component: Market,
           meta: { title: '市场洞察 · 爆款发现' },
-        },
-        {
-          path: 'market/trends',
-          name: 'MarketTrends',
-          component: TrendsDashboard,
-          meta: { title: '市场洞察 · 趋势大盘' },
         },
         {
           path: 'market/research',
@@ -175,8 +168,15 @@ const router = createRouter({
     },
     {
       path: '/home',
-      name: 'Home',
-      component: Home,
+      component: AppLayout,
+      children: [
+        {
+          path: '',
+          name: 'Home',
+          component: Home,
+          meta: { title: '新建作品' },
+        },
+      ],
     },
     {
       path: '/debug/scheduler',

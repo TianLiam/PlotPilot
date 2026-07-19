@@ -37,8 +37,8 @@ def start_frontend():
     print("🚀 启动前端服务...")
     script_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
     frontend_dir = os.path.join(script_dir, "frontend")
-    frontend_cmd = ["npm", "run", "dev"]
-    return subprocess.Popen(frontend_cmd, cwd=frontend_dir)
+    frontend_cmd = "D:\\nodejs\\npm.cmd run dev"
+    return subprocess.Popen(frontend_cmd, cwd=frontend_dir, shell=True)
 
 def main():
     print_banner()

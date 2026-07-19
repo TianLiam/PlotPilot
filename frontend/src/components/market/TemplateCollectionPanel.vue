@@ -93,7 +93,7 @@ function updateGenre(value: string | number | null): void {
 
 <style scoped>
 .template-panel {
-  padding: clamp(20px, 3vw, 32px);
+  padding: clamp(16px, 2vw, 24px);
   border: 1px solid var(--app-border);
   border-radius: 20px;
   background: var(--app-surface);
@@ -105,7 +105,7 @@ function updateGenre(value: string | number | null): void {
   align-items: flex-end;
   justify-content: space-between;
   gap: 24px;
-  margin-bottom: 24px;
+  margin-bottom: 18px;
 }
 
 .template-title-row {
@@ -118,7 +118,7 @@ function updateGenre(value: string | number | null): void {
   margin: 0;
   color: var(--app-text-primary);
   font-family: "Noto Serif SC", "Source Han Serif SC", Georgia, serif;
-  font-size: 21px;
+  font-size: 19px;
 }
 
 .template-count {
@@ -128,10 +128,10 @@ function updateGenre(value: string | number | null): void {
 }
 
 .template-panel-head p {
-  margin: 7px 0 0;
+  margin: 6px 0 0;
   color: var(--app-text-muted);
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 12px;
+  line-height: 1.55;
 }
 
 .template-controls {
@@ -147,16 +147,16 @@ function updateGenre(value: string | number | null): void {
 .template-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: 10px;
 }
 
 .template-item {
   display: flex;
-  min-height: 230px;
+  min-height: 150px;
   flex-direction: column;
-  padding: 20px;
+  padding: 14px;
   border: 1px solid var(--app-border);
-  border-radius: 15px;
+  border-radius: 13px;
   background: linear-gradient(145deg, #fff, var(--app-surface-subtle));
   transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
@@ -164,7 +164,7 @@ function updateGenre(value: string | number | null): void {
 .template-item:hover {
   transform: translateY(-2px);
   border-color: rgba(79, 70, 229, 0.24);
-  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.07);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
 }
 
 .template-item-head,
@@ -186,8 +186,8 @@ function updateGenre(value: string | number | null): void {
 }
 
 .template-source::before {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: #94a3b8;
   content: "";
@@ -199,13 +199,13 @@ function updateGenre(value: string | number | null): void {
 
 .template-source.is-crawler::before {
   background: #10b981;
-  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
 }
 
 .template-item h3 {
-  margin: 18px 0 8px;
+  margin: 10px 0 5px;
   color: var(--app-text-primary);
-  font-size: 17px;
+  font-size: 15px;
   line-height: 1.35;
 }
 
@@ -214,21 +214,21 @@ function updateGenre(value: string | number | null): void {
   margin: 0;
   overflow: hidden;
   color: var(--app-text-secondary);
-  font-size: 13px;
-  line-height: 1.7;
+  font-size: 12px;
+  line-height: 1.6;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
 }
 
 .template-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 14px;
+  gap: 5px;
+  margin-top: 8px;
 }
 
 .template-tags span {
-  padding: 3px 8px;
+  padding: 2px 7px;
   border-radius: 99px;
   background: rgba(79, 70, 229, 0.07);
   color: #4f46e5;
@@ -238,13 +238,13 @@ function updateGenre(value: string | number | null): void {
 .template-item-foot {
   align-items: flex-end;
   margin-top: auto;
-  padding-top: 18px;
+  padding-top: 10px;
 }
 
 .template-metrics {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   color: var(--app-text-muted);
   font-size: 11px;
 }
@@ -254,28 +254,28 @@ function updateGenre(value: string | number | null): void {
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 20px;
-  min-height: 190px;
-  padding: 28px;
+  min-height: 150px;
+  padding: 22px;
   border: 1px dashed rgba(100, 116, 139, 0.35);
-  border-radius: 15px;
+  border-radius: 13px;
   background: var(--app-surface-subtle);
 }
 
 .template-empty-index {
   color: #cbd5e1;
   font-family: Georgia, serif;
-  font-size: 42px;
+  font-size: 36px;
   font-weight: 800;
 }
 
 .template-empty h3 {
   margin: 0;
   color: var(--app-text-primary);
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .template-empty p {
-  margin: 6px 0 0;
+  margin: 5px 0 0;
   color: var(--app-text-muted);
   font-size: 12px;
 }
