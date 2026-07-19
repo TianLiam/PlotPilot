@@ -147,6 +147,20 @@ def calculate_structure_params(target_chapters: int) -> Dict:
             "reasoning": str,           # 计算理由（用于日志）
         }
     """
+    # 短篇模式：1-15 章，无部无卷，1 幕通铺
+    if target_chapters <= 15:
+        parts, vpp, apv = 1, 1, 1
+        cpa = max(target_chapters, 1)
+        reason = f"短篇({target_chapters}节)：1部×1卷×1幕通铺，共{cpa}节，无卷无部结构"
+        return {
+            "parts": parts,
+            "volumes_per_part": vpp,
+            "acts_per_volume": apv,
+            "chapters_per_act": cpa,
+            "total_acts": 1,
+            "reasoning": reason,
+        }
+
     t = max(target_chapters, 10)
 
     if t <= 30:

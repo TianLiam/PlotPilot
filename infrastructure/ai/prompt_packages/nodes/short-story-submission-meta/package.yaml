@@ -1,0 +1,22 @@
+name: 短篇投稿元信息 · 知乎盐选
+category: submission
+source: infrastructure/ai/prompt_packages/nodes/short-story-submission-meta
+description: 生成知乎盐选投稿必填项：金句、简介、梗概、标签
+builtin: true
+tags:
+- 短篇
+- 知乎盐选
+- 投稿
+- 元信息
+output_format: json
+variables:
+- name: full_content
+  desc: 短篇全文
+  type: string
+  required: true
+- name: genre
+  desc: 题材（如女性悬疑、现实情感、脑洞反转、追妻火葬场、重生复仇）
+  type: string
+  required: true
+id: short-story-submission-meta
+sort_order: 202

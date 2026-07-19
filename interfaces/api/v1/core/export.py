@@ -26,17 +26,23 @@ async def export_novel(
     export_service: ExportService = Depends(get_export_service)
 ):
     """导出小说
-    
+
     Args:
         novel_id: 小说ID
-        format: 导出格式，支持 epub, pdf, docx, markdown
-        
+        format: 导出格式，支持 epub, pdf, docx, markdown, zhihu, fanqie
+            - epub: EPUB 电子书
+            - pdf: PDF 文档
+            - docx: Word 文档
+            - markdown: Markdown 文本
+            - zhihu: 知乎盐选格式（纯文本，符合盐选排版规范）
+            - fanqie: 番茄短故事格式（纯文本）
+
     Returns:
         流式响应，包含导出的文件
     """
     try:
         # 验证格式
-        valid_formats = ["epub", "pdf", "docx", "markdown"]
+        valid_formats = ["epub", "pdf", "docx", "markdown", "zhihu", "fanqie"]
         if format not in valid_formats:
             raise HTTPException(status_code=400, detail=f"不支持的导出格式: {format}")
         
@@ -72,7 +78,13 @@ async def export_chapter(
 
     Args:
         chapter_id: 章节ID（UUID格式，如 chapter-novel1-1）
-        format: 导出格式，支持 epub, pdf, docx, markdown
+        format: 导出格式，支持 epub, pdf, docx, markdown, zhihu, fanqie
+            - epub: EPUB 电子书
+            - pdf: PDF 文档
+            - docx: Word 文档
+            - markdown: Markdown 文本
+            - zhihu: 知乎盐选格式（纯文本，符合盐选排版规范）
+            - fanqie: 番茄短故事格式（纯文本）
         novel_id: 小说ID（与 chapter_number 配合使用，替代 chapter_id）
         chapter_number: 章节编号（与 novel_id 配合使用，替代 chapter_id）
 
@@ -81,7 +93,7 @@ async def export_chapter(
     """
     try:
         # 验证格式
-        valid_formats = ["epub", "pdf", "docx", "markdown"]
+        valid_formats = ["epub", "pdf", "docx", "markdown", "zhihu", "fanqie"]
         if format not in valid_formats:
             raise HTTPException(status_code=400, detail=f"不支持的导出格式: {format}")
 

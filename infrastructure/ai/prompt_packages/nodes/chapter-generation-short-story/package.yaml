@@ -1,0 +1,35 @@
+name: 短篇正文生成 · 知乎盐选
+category: generation
+source: infrastructure/ai/prompt_packages/nodes/chapter-generation-short-story
+description: 短篇正文生成：符合知乎盐选排版与叙事规范
+builtin: true
+tags:
+- 短篇
+- 知乎盐选
+- 正文生成
+- 第一人称
+- 红线prompt
+output_format: text
+variables:
+- name: premise
+  desc: 故事梗概（用于把握全局基调）
+  type: string
+  required: true
+- name: section_outline
+  desc: 当前节点大纲（含本节剧情点、结尾钩子、目标字数）
+  type: string
+  required: true
+- name: prev_section_ending
+  desc: 上一节结尾原文（用于衔接，首节为空字符串）
+  type: string
+  default: ''
+- name: target_words
+  desc: 本节目标字数（1500-2500）
+  type: integer
+  required: true
+- name: section_number
+  desc: 节号（如 1、2、3，对应章节标注【1】【2】【3】）
+  type: integer
+  required: true
+id: chapter-generation-short-story
+sort_order: 201

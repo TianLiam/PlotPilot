@@ -162,6 +162,7 @@ class NovelService:
         special_requirements: str = "",
         length_tier: Optional[str] = None,
         target_words_per_chapter: Optional[int] = None,
+        novel_form: Optional[str] = None,
     ) -> NovelDTO:
         """创建新小说
 
@@ -183,6 +184,11 @@ class NovelService:
         Returns:
             NovelDTO
         """
+        # 短篇形态自动推导
+        from domain.novel.entities.novel import NovelForm
+        form_value = novel_form or ("short_story" if length_tier == "micro_short" else "serial")
+        novel_form_enum = NovelForm.SHORT_STORY if form_value == "short_story" else NovelForm.SERIAL
+
         chapters, wpc, _tier_norm = resolve_v1_length_params(
             length_tier, target_chapters, target_words_per_chapter
         )
@@ -203,6 +209,7 @@ class NovelService:
             premise=user_block,
             stage=NovelStage.PLANNING,
             target_words_per_chapter=wpc,
+            novel_form=novel_form_enum,
             generation_prefs=GenerationPreferences(
                 locked_genre=str(genre or "").strip(),
                 locked_world_preset=str(world_preset or "").strip(),

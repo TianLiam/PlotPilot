@@ -1,6 +1,7 @@
 export type NovelStage = 'planning' | 'writing' | 'reviewing' | 'completed'
 export type NovelStageTagType = 'info' | 'warning' | 'default' | 'success'
-export type NovelLengthTier = 'short' | 'standard' | 'epic'
+export type NovelLengthTier = 'micro_short' | 'short' | 'standard' | 'epic'
+export type NovelForm = 'serial' | 'short_story'
 
 export interface NovelLengthTierOption {
   value: NovelLengthTier
@@ -16,6 +17,11 @@ const NOVEL_STAGE_META: Record<NovelStage, { label: string; tagType: NovelStageT
 }
 
 export const NOVEL_LENGTH_TIER_OPTIONS: NovelLengthTierOption[] = [
+  {
+    value: 'micro_short',
+    title: 'S · 知乎盐选短篇',
+    hint: '8000-30000 字，单篇完结，适配知乎盐选/番茄短故事',
+  },
   {
     value: 'short',
     title: 'A · 短篇快穿 / 脑洞文',

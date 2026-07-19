@@ -127,7 +127,7 @@ const exportOptions = [
 async function handleExport(format: string) {
   try {
     message.info(`开始导出为 ${format} 格式...`)
-    const blob = await novelApi.exportNovel(props.slug, format)
+    const blob = await novelApi.exportNovel(props.slug, format as 'epub' | 'pdf' | 'docx' | 'markdown' | 'zhihu' | 'fanqie')
     
     // 创建下载链接
     const url = URL.createObjectURL(blob)

@@ -1,0 +1,30 @@
+name: 短篇规划 · 知乎盐选
+category: planning
+source: infrastructure/ai/prompt_packages/nodes/planning-short-story
+description: 短篇规划：直接生成单篇大纲，跳过宏观/幕级规划
+builtin: true
+tags:
+- 短篇
+- 知乎盐选
+- 规划
+- 单篇大纲
+output_format: json
+variables:
+- name: premise
+  desc: 用户给的故事梗概（300-500字）
+  type: string
+  required: true
+- name: genre_tags
+  desc: 题材标签（如女性悬疑、现实情感、脑洞反转、追妻火葬场、重生复仇）
+  type: string
+  required: true
+- name: target_words
+  desc: 目标总字数（短篇建议 1.5万-3万字）
+  type: integer
+  required: true
+- name: target_sections
+  desc: 目标节数（4-15 节，每节 1500-2500 字）
+  type: integer
+  required: true
+id: planning-short-story
+sort_order: 200

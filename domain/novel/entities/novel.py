@@ -21,6 +21,12 @@ class NovelStage(str, Enum):
     COMPLETED = "completed"
 
 
+class NovelForm(str, Enum):
+    """小说形态：区分长篇连载与短篇"""
+    SERIAL = "serial"        # 长篇连载（默认）
+    SHORT_STORY = "short_story"  # 短篇（知乎盐选/番茄短故事，8000-30000字）
+
+
 class AutopilotStatus(str, Enum):
     """自动驾驶状态"""
     STOPPED = "stopped"  # 人工接管/暂停
@@ -70,6 +76,7 @@ class Novel(BaseEntity):
         # 审计进度指示
         audit_progress: Optional[str] = None,
         generation_prefs: Optional[GenerationPreferences] = None,
+        novel_form: NovelForm = NovelForm.SERIAL,  # 小说形态：长篇连载 / 短篇
     ):
         super().__init__(id.value)
         self.novel_id = id
@@ -116,6 +123,7 @@ class Novel(BaseEntity):
         # 审计进度指示
         self.audit_progress = audit_progress
         self.generation_prefs = generation_prefs or GenerationPreferences()
+        self.novel_form = novel_form
 
     def add_chapter(self, chapter: Chapter) -> None:
         """添加章节（必须连续）"""

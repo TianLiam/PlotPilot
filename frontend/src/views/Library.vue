@@ -18,6 +18,12 @@
             <n-icon><IconSearch /></n-icon>
           </template>
         </n-input>
+        <n-button size="large" round @click="showShortStoryGuide = true">
+          <template #icon>
+            <n-icon><CreateOutline /></n-icon>
+          </template>
+          创建短篇
+        </n-button>
         <n-button type="primary" size="large" round @click="goCreate">
           <template #icon>
             <n-icon><IconPlus /></n-icon>
@@ -135,6 +141,8 @@
         </div>
       </div>
     </div>
+
+    <ShortStorySetupGuide v-model:show="showShortStoryGuide" @created="handleShortStoryCreated" />
   </div>
 </template>
 
@@ -142,12 +150,14 @@
 import { ref, computed, onMounted, h } from 'vue'
 import { useRouter } from 'vue-router'
 import { NIcon, useMessage } from 'naive-ui'
+import { CreateOutline } from '@vicons/ionicons5'
 import { novelApi, type NovelDTO } from '../api/novel'
 import {
   getNovelStageLabel,
   getNovelStageTagType,
 } from '@/domain/novel'
 import { parseGenreWorldFromPremise } from '@/utils/premisePresets'
+import ShortStorySetupGuide from '@/components/onboarding/ShortStorySetupGuide.vue'
 
 const router = useRouter()
 const message = useMessage()
@@ -165,6 +175,7 @@ const books = ref<any[]>([])
 const searchQuery = ref('')
 const filterStage = ref('all')
 const sortBy = ref('updated')
+const showShortStoryGuide = ref(false)
 
 const sortOptions = [
   { label: '最近更新', value: 'updated' },
@@ -259,6 +270,11 @@ const getProgressColor = (stage: string) => {
 
 const goCreate = () => {
   router.push('/home')
+}
+
+const handleShortStoryCreated = (novelId: string) => {
+  // 跳转到工作台
+  router.push(`/book/${novelId}/workbench`)
 }
 
 const openBook = (slug: string) => {

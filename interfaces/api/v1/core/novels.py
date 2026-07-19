@@ -40,15 +40,19 @@ class CreateNovelRequest(BaseModel):
     pacing_control: str = Field(default="", description="节奏把控（题材预设，可由用户修改）")
     writing_style: str = Field(default="", description="写作风格（题材预设，可由用户修改）")
     special_requirements: str = Field(default="", description="特殊要求（题材预设，可由用户修改）")
-    length_tier: Optional[Literal["short", "standard", "epic"]] = Field(
+    length_tier: Optional[Literal["micro_short", "short", "standard", "epic"]] = Field(
         None,
-        description="V1 目标篇幅档：short≈30万字 / standard≈100万字 / epic≈300万字（推导章数与每章字数）",
+        description="目标篇幅档：micro_short=知乎盐选短篇(8000-30000字) / short≈30万字 / standard≈100万字 / epic≈300万字",
     )
     target_words_per_chapter: Optional[int] = Field(
         None,
         ge=CHAPTER_TARGET_WORDS_MIN,
         le=CHAPTER_TARGET_WORDS_MAX,
         description="每章目标字数；可选，与体量档或自定义章数搭配",
+    )
+    novel_form: Optional[Literal["serial", "short_story"]] = Field(
+        None,
+        description="小说形态：serial=长篇连载 / short_story=短篇。选 micro_short 档位时自动设为 short_story",
     )
 
 
@@ -149,6 +153,7 @@ async def create_novel(
         special_requirements=request.special_requirements,
         length_tier=request.length_tier,
         target_words_per_chapter=request.target_words_per_chapter,
+        novel_form=request.novel_form,
     )
 
     return novel_dto

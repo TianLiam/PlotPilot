@@ -1,0 +1,123 @@
+# 知乎盐选短篇题材模板
+# 每个模板包含：题材标签、核心爽点、经典桥段、人设模板、节奏要点、推荐字数、反转点设计
+
+templates:
+  - id: female_suspense
+    name: 女性悬疑
+    name_en: female_suspense
+    description: 以女性视角展开的悬疑故事，强调反转和信息差
+    tags:
+      - 悬疑
+      - 反转
+      - 女性视角
+    core_appeal: " uncover 隐藏的真相，每一次反转都颠覆读者认知"
+    classic_tropes:
+      - "看似完美的丈夫/男友隐藏着可怕秘密"
+      - "闺蜜/姐妹间的背叛与真相"
+      - "记忆错位——主角发现记忆被篡改"
+      - "双线叙事——过去与现在的交织"
+    character_archetypes:
+      - "女主角：表面平凡但内心坚韧，有洞察力"
+      - "反派：表面可信但隐藏真实身份"
+      - "关键证人：提供翻转性信息"
+    pacing_notes: "开篇即悬念，每2000字一个小反转，结尾大反转"
+    recommended_words: 15000
+    recommended_sections: 8
+    twist_design: "三层反转：表层真相→中层误导→底层真相"
+    taboo: "不写真实案件，不具象暴力"
+
+  - id: realistic_emotion
+    name: 现实情感
+    name_en: realistic_emotion
+    description: 聚焦现实生活中的情感冲突，代入感强
+    tags:
+      - 情感
+      - 现实
+      - 代入感
+    core_appeal: "读者在故事中看到自己的生活，获得情感宣泄"
+    classic_tropes:
+      - "婚姻危机——从发现端倪到决断"
+      - "职场情感——上下级/同事间的暧昧与博弈"
+      - "原生家庭——与父母的和解或决裂"
+      - "中年困境——事业家庭的双重压力"
+    character_archetypes:
+      - "主角：30岁左右都市女性，有工作有家庭"
+      - "对手：造成情感冲突的核心人物"
+      - "支持者：朋友/同事，提供情感支撑"
+    pacing_notes: "开篇300字内点明冲突，中段层层升级，结尾给出态度"
+    recommended_words: 12000
+    recommended_sections: 6
+    twist_design: "情感反转：从忍让到觉醒，从误解到理解"
+    taboo: "不写狗血，不写三观不正"
+
+  - id: brain_hole
+    name: 脑洞反转
+    name_en: brain_hole
+    description: 高概念设定，强反转，适合脑洞类短篇
+    tags:
+      - 脑洞
+      - 反转
+      - 奇幻
+    core_appeal: "一个惊艳的设定贯穿全文，结尾给出颠覆性反转"
+    classic_tropes:
+      - "时间循环——主角被困在某一天"
+      - "身份互换——两个灵魂的错位"
+      - "规则怪谈——遵守规则才能存活"
+      - "平行世界——另一个自己的选择"
+    character_archetypes:
+      - "主角：普通人，被卷入异常事件"
+      - "引导者：解释规则的关键角色"
+      - "反转角色：看似敌对实则帮助"
+    pacing_notes: "开篇即抛出设定，每个节点揭示新规则，结尾颠覆全局"
+    recommended_words: 18000
+    recommended_sections: 10
+    twist_design: "终极反转：主角发现自己才是..."
+    taboo: "不写封建迷信，设定要有内在逻辑"
+
+  - id: wife_chasing
+    name: 追妻火葬场
+    name_en: wife_chasing
+    description: 经典爽文套路，男主作死后悔追妻
+    tags:
+      - 爽文
+      - 虐恋
+      - HE
+    core_appeal: "看渣男后悔，看女主逆袭，爽感十足"
+    classic_tropes:
+      - "误会抛弃——男主因误会伤害女主"
+      - "身份反转——女主其实是隐藏大佬"
+      - "追妻火葬——男主百般讨好求复合"
+      - "新欢出现——女主已有更好的人"
+    character_archetypes:
+      - "女主：前期隐忍，后期果断强大"
+      - "男主：前期傲慢，后期卑微"
+      - "新欢：比男主更懂女主的优质角色"
+    pacing_notes: "前1/3虐，中1/3反转，后1/3爽"
+    recommended_words: 15000
+    recommended_sections: 8
+    twist_design: "身份反转+情感反转：女主从未真正爱过"
+    taboo: "不写三观不正的复合结局"
+
+  - id: rebirth_revenge
+    name: 重生复仇
+    name_en: rebirth_revenge
+    description: 重生类复仇爽文，前世被害重生后复仇
+    tags:
+      - 重生
+      - 复仇
+      - 爽文
+    core_appeal: "带着记忆重来，步步为营，让仇人付出代价"
+    classic_tropes:
+      - "前世被害——重生回到关键节点"
+      - "改写命运——避开前世的坑"
+      - "布局复仇——一步步揭露仇人真面目"
+      - "终局清算——仇人失去一切"
+    character_archetypes:
+      - "主角：重生者，冷静智慧"
+      - "仇人：前世加害者，表面可信"
+      - "盟友：前世错过的人，今生成为助力"
+    pacing_notes: "开篇即重生，每节一个复仇节点，结尾大清算"
+    recommended_words: 20000
+    recommended_sections: 10
+    twist_design: "终极反转：仇人也有自己的苦衷？不，坚定复仇"
+    taboo: "不写血腥复仇，靠智慧和信息差取胜"

@@ -20,6 +20,7 @@ const Library = () => import('../views/Library.vue')
 const Studio = () => import('../views/Studio.vue')
 
 const BookOverview = () => import('../views/book/BookOverview.vue')
+const ShortStoryReader = () => import('../views/book/ShortStoryReader.vue')
 const PagePlaceholder = () => import('../components/common/PagePlaceholder.vue')
 
 const CharacterSchedulerSimulator = () =>
@@ -161,6 +162,12 @@ const router = createRouter({
               name: 'Chapter',
               component: Chapter,
               meta: { title: '章节详情' },
+            },
+            {
+              path: 'reader',
+              name: 'ShortStoryReader',
+              component: ShortStoryReader,
+              meta: { title: '短篇阅读' },
             },
           ],
         },

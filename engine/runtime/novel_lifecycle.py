@@ -82,19 +82,41 @@ async def process_novel(host: Any, novel: Novel) -> None:
         stage_name = novel.current_stage.value
         logger.debug("[%s] 当前阶段: %s", novel.novel_id, stage_name)
 
+        # 短篇模式：跳过宏观/幕级规划，直接进入写作
+        from domain.novel.entities.novel import NovelForm
+        is_short_story = getattr(novel, "novel_form", NovelForm.SERIAL) == NovelForm.SHORT_STORY
+
         if novel.current_stage in (NovelStage.PLANNING, NovelStage.MACRO_PLANNING):
-            if novel.current_stage == NovelStage.PLANNING:
-                logger.info("[%s] 旧版 planning 阶段归一为 macro_planning", novel.novel_id)
-                novel.current_stage = NovelStage.MACRO_PLANNING
+            if is_short_story:
+                logger.info("[%s] 短篇模式：跳过宏观规划，直接进入写作", novel.novel_id)
+                novel.current_stage = NovelStage.WRITING
+                novel.current_act = 0
                 try:
                     host._save_novel_state(novel)
                 except Exception:
-                    logger.debug("[%s] planning 阶段归一落库失败，将继续执行宏观规划", novel.novel_id, exc_info=True)
-            logger.info("[%s] 开始宏观规划", novel.novel_id)
-            await run_macro_planning(host, novel)
+                    logger.debug("[%s] 短篇模式阶段切换落库失败", novel.novel_id, exc_info=True)
+                from engine.runtime.writing_delegate import run_writing
+                await run_writing(host, novel)
+            else:
+                if novel.current_stage == NovelStage.PLANNING:
+                    logger.info("[%s] 旧版 planning 阶段归一为 macro_planning", novel.novel_id)
+                    novel.current_stage = NovelStage.MACRO_PLANNING
+                    try:
+                        host._save_novel_state(novel)
+                    except Exception:
+                        logger.debug("[%s] planning 阶段归一落库失败，将继续执行宏观规划", novel.novel_id, exc_info=True)
+                logger.info("[%s] 开始宏观规划", novel.novel_id)
+                await run_macro_planning(host, novel)
         elif novel.current_stage == NovelStage.ACT_PLANNING:
-            logger.info("[%s] 开始幕级规划 (第 %s 幕)", novel.novel_id, novel.current_act + 1)
-            await run_act_planning(host, novel)
+            if is_short_story:
+                logger.info("[%s] 短篇模式：跳过幕级规划，直接进入写作", novel.novel_id)
+                novel.current_stage = NovelStage.WRITING
+                host._save_novel_state(novel)
+                from engine.runtime.writing_delegate import run_writing
+                await run_writing(host, novel)
+            else:
+                logger.info("[%s] 开始幕级规划 (第 %s 幕)", novel.novel_id, novel.current_act + 1)
+                await run_act_planning(host, novel)
         elif novel.current_stage == NovelStage.WRITING:
             logger.info("[%s] 开始写作 (第 %s 幕)", novel.novel_id, novel.current_act + 1)
             from engine.runtime.writing_delegate import run_writing
@@ -105,8 +127,12 @@ async def process_novel(host: Any, novel: Novel) -> None:
             await run_chapter_audit(host, novel)
         elif novel.current_stage == NovelStage.PAUSED_FOR_REVIEW:
             if getattr(novel, "auto_approve_mode", False):
-                logger.info("[%s] 全自动模式：跳过人工审阅", novel.novel_id)
-                novel.current_stage = NovelStage.ACT_PLANNING
+                if is_short_story:
+                    logger.info("[%s] 短篇全自动模式：直接完成", novel.novel_id)
+                    novel.current_stage = NovelStage.COMPLETED
+                else:
+                    logger.info("[%s] 全自动模式：跳过人工审阅", novel.novel_id)
+                    novel.current_stage = NovelStage.ACT_PLANNING
                 host._save_novel_state(novel)
                 return
             logger.debug("[%s] 等待人工审阅", novel.novel_id)

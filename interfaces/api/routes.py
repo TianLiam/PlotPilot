@@ -67,6 +67,7 @@ def register_api_routes(app: FastAPI) -> None:
         novels,
         scene_generation_routes,
         settings as llm_settings,
+        short_story,
     )
     from interfaces.api.v1.engine import (
         ai_invocation_routes,
@@ -112,6 +113,7 @@ def register_api_routes(app: FastAPI) -> None:
         app,
         (
             RouterRegistration(novels.router, API_V1_PREFIX),
+            RouterRegistration(short_story.router, API_V1_PREFIX),
             RouterRegistration(taxonomy_routes.router, API_V1_PREFIX),
             RouterRegistration(chapters.router, NOVELS_API_PREFIX),
             RouterRegistration(manuscript_entity_routes.router, NOVELS_API_PREFIX),

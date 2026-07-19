@@ -120,6 +120,8 @@ export interface NovelDTO {
   auto_approve_mode?: boolean
   /** 每章目标字数（与首页建档/PUT 一致；部分接口可能未返回） */
   target_words_per_chapter?: number
+  /** 小说形态：serial=长篇连载 / short_story=短篇 */
+  novel_form?: 'serial' | 'short_story'
   /** 生成偏好（全托管/指挥器） */
   generation_prefs?: GenerationPrefsDTO
 }
@@ -154,7 +156,9 @@ export const novelApi = {
     writing_style?: string
     special_requirements?: string
     /** V1 体量档：与 target_chapters 二选一由后端解析 */
-    length_tier?: 'short' | 'standard' | 'epic' | null
+    length_tier?: 'micro_short' | 'short' | 'standard' | 'epic' | null
+    /** 小说形态：serial / short_story（选 micro_short 时自动设为 short_story） */
+    novel_form?: 'serial' | 'short_story' | null
     target_words_per_chapter?: number | null
   }) => apiClient.post<NovelDTO>(apiRoutes.novels.root(), data) as Promise<NovelDTO>,
 
@@ -209,7 +213,7 @@ export const novelApi = {
    * Export novel
    * GET /api/v1/export/novel/{novelId}
    */
-  exportNovel: (novelId: string, format: string) =>
+  exportNovel: (novelId: string, format: 'epub' | 'pdf' | 'docx' | 'markdown' | 'zhihu' | 'fanqie') =>
     apiClient.get<Blob>(apiRoutes.novels.exportNovel(novelId), {
       params: { format },
       responseType: 'blob'
@@ -219,9 +223,29 @@ export const novelApi = {
    * Export chapter
    * GET /api/v1/export/chapter/{chapterId}
    */
-  exportChapter: (chapterId: string, format: string) =>
+  exportChapter: (chapterId: string, format: 'epub' | 'pdf' | 'docx' | 'markdown' | 'zhihu' | 'fanqie') =>
     apiClient.get<Blob>(apiRoutes.novels.exportChapter(chapterId), {
       params: { format },
       responseType: 'blob'
     }) as Promise<Blob>,
+
+  /**
+   * 获取短篇题材模板列表
+   * GET /api/v1/short-story/templates
+   */
+  getShortStoryTemplates: () => apiClient.get<unknown>('/short-story/templates') as Promise<any[]>,
+
+  /**
+   * 生成短篇投稿元信息（金句/简介/梗概/标签）
+   * POST /api/v1/short-story/{novelId}/submission-meta
+   */
+  generateSubmissionMeta: (novelId: string) =>
+    apiClient.post<unknown>(`/short-story/${novelId}/submission-meta`) as Promise<{
+      hook_quote: string
+      short_intro: string
+      synopsis: string
+      tags: string[]
+      title_suggestion: string
+      opening_optimization: string
+    }>,
 }

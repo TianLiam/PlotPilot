@@ -8,6 +8,11 @@ from application.core.chapter_target_limits import clamp_chapter_target_words
 
 # 档位 id → 约总字数（规划目标，非公证成稿字数）
 V1_LENGTH_TIERS: Dict[str, Dict[str, Any]] = {
+    "micro_short": {
+        "label_zh": "知乎盐选短篇（8000-30000字）",
+        "approx_total_words": 15_000,  # 中位数 1.5 万字
+        "default_chapter_words": 2000,
+    },
     "short": {
         "label_zh": "短篇快穿 / 脑洞文",
         "approx_total_words": 300_000,
@@ -48,6 +53,9 @@ def resolve_v1_length_params(
         wpc = clamp_chapter_target_words(wpc)
         total = int(meta["approx_total_words"])
         chapters = max(1, math.ceil(total / wpc))
+        # 短篇档位：按 2000 字/章算，8000字=4章，30000字=15章，章数需在 4-15 范围内
+        if tier == "micro_short":
+            chapters = max(4, min(15, chapters))
         return chapters, wpc, tier
 
     tc = target_chapters if target_chapters and target_chapters > 0 else 100
@@ -63,6 +71,13 @@ def build_v1_structure_black_box_hint(
 ) -> str:
     """写入梗概前缀的黑盒说明：供 Bible/规划/生成链路消费，界面不单独展示。"""
     approx_book = target_chapters * words_per_chapter
+    if tier_key == "micro_short":
+        return f"""【系统内部·叙事结构规划（体量档：知乎盐选短篇）（勿向读者展示本段标题与标签）】
+规划目标体量：约 {approx_book:,} 字；目标分节约 {target_chapters} 节；每节写作目标约 {words_per_chapter} 字。
+结构：采用「开篇钩子→冲突升级→反转→结局」的单线紧凑结构，无卷无部，节节推进。
+节奏：前 300 字内必须抛出核心冲突；每千字至少 1 个钩子；全文至少 12 个清晰剧情点。
+写作约束：第一人称视角；段落顶格不缩进；每段不超过 30 字；对话用破折号（——）不用引号；顺叙为主，慎用倒叙。"""
+
     # 卷数：最多 5 卷，按约每卷 100 章切分（与「商业五卷」叙事习惯对齐，仅为节奏提示）
     vol_cap = 5
     vols = min(vol_cap, max(1, (target_chapters + 99) // 100))

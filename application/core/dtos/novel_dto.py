@@ -87,6 +87,7 @@ class NovelDTO:
     locked_writing_style: str = ""
     locked_special_requirements: str = ""
     target_words_per_chapter: int = 2500
+    novel_form: str = "serial"  # serial / short_story
     generation_prefs: Dict[str, Any] = field(default_factory=dict)
 
     @classmethod
@@ -119,7 +120,7 @@ class NovelDTO:
         lg = gp_locked_genre or parsed_genre
         lw = gp_locked_world_preset or parsed_world_preset
 
-        return cls(
+        dto = cls(
             id=novel.novel_id.value,
             slug=getattr(novel, 'slug', novel.novel_id.value) or novel.novel_id.value,
             title=novel.title,
@@ -140,3 +141,7 @@ class NovelDTO:
             target_words_per_chapter=int(getattr(novel, "target_words_per_chapter", 2500) or 2500),
             generation_prefs=gp_dict,
         )
+        dto.novel_form = getattr(novel, "novel_form", "serial")
+        if hasattr(dto.novel_form, "value"):
+            dto.novel_form = dto.novel_form.value
+        return dto
