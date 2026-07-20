@@ -1,0 +1,32 @@
+name: 小说深度拆书
+category: market
+source: application/market/deconstruction/novel_deconstruction_agent.py
+description: 小说深度拆书：逐章拆解节拍/人物/剧情/金手指/爽点/爆款DNA
+builtin: true
+tags:
+- 市场
+- 拆书
+- 爆款DNA
+output_format: json
+variables:
+- name: novel_text
+  desc: 小说文本
+  type: string
+  required: true
+- name: book_title
+  desc: 书名
+  type: string
+  required: false
+  default: ''
+- name: genre
+  desc: 题材
+  type: string
+  required: false
+  default: 通用
+- name: chapter_count
+  desc: 章节数
+  type: integer
+  required: false
+  default: 0
+id: market-novel-deconstruction
+sort_order: 221

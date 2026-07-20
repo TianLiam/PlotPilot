@@ -1,0 +1,32 @@
+name: 创作前研究报告
+category: market
+source: application/market/research/ai_research_agent.py
+description: 创作前研究报告：可行性/推荐设定/避坑/时机/竞品
+builtin: true
+tags:
+- 市场
+- 研究报告
+- 创作前
+output_format: json
+variables:
+- name: genre
+  desc: 题材
+  type: string
+  required: true
+- name: premise
+  desc: 故事梗概
+  type: string
+  required: false
+  default: ''
+- name: target_audience
+  desc: 目标读者
+  type: string
+  required: false
+  default: ''
+- name: samples_data
+  desc: 历史样本数据
+  type: string
+  required: false
+  default: ''
+id: market-ai-research
+sort_order: 222

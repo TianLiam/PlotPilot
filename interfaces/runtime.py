@@ -162,10 +162,14 @@ class BackendLifecycle:
         try:
             from application.market.data.initial_templates import save_initial_templates
             from application.paths import get_db_path
-            save_initial_templates(str(get_db_path()))
-            self._logger.info("Startup: market templates initialized")
+            count = save_initial_templates(str(get_db_path()))
+            self._logger.info("Startup: market templates initialized (%d new seeded)", count)
+        except ImportError as exc:
+            # 静态模板种子模块缺失，属于部署问题，警告但不阻断启动
+            self._logger.warning("Startup: initial_templates module missing, market templates will be empty: %s", exc)
         except Exception as exc:
-            self._logger.warning("Startup: failed to initialize market templates: %s", exc)
+            # 运行时错误（DB问题、YAML解析问题等），用 error 级别让问题可见
+            self._logger.error("Startup: failed to initialize market templates: %s", exc, exc_info=True)
 
     def shutdown(self) -> None:
         """Run graceful shutdown hooks shared by uvicorn and desktop shutdown."""

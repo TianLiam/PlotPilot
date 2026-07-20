@@ -1,0 +1,27 @@
+name: 市场爆款分析
+category: market
+source: application/market/analyzer/bestseller_analysis_agent.py
+description: 市场爆款分析：从小说免费章节提取金手指/开局/人物/世界观/爽点/冲突/节奏 7 类模板
+builtin: true
+tags:
+- 市场
+- 爆款
+- 模板提取
+output_format: json
+variables:
+- name: novel_text
+  desc: 小说文本
+  type: string
+  required: true
+- name: genre
+  desc: 题材
+  type: string
+  required: false
+  default: 通用
+- name: book_title
+  desc: 书名
+  type: string
+  required: false
+  default: ''
+id: market-bestseller-analysis
+sort_order: 220
