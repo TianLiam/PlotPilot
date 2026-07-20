@@ -133,6 +133,7 @@ def _get_activities(novel_id: Optional[str]) -> List[ActivityItem]:
 
 
 @router.get("/data", response_model=DashboardDataResponse)
+@router.get("/data/", response_model=DashboardDataResponse)
 async def get_dashboard_data(
     novel_id: Optional[str] = None,
 ):

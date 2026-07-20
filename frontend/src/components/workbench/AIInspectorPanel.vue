@@ -162,7 +162,7 @@ function getScoreLabel(score: number) {
           <div class="tab-header-badge">
             风险
             <n-badge :value="risks.length" type="warning" size="small">
-              <span></span>
+              <span class="badge-placeholder">!</span>
             </n-badge>
           </div>
         </template>
@@ -657,5 +657,9 @@ function getScoreLabel(score: number) {
 
 .char-status-dot.inactive {
   background: var(--color-warning);
+}
+
+.badge-placeholder {
+  display: none;
 }
 </style>
