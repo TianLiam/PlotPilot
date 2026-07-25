@@ -7,10 +7,10 @@
         <!-- Header -->
         <header class="header">
           <div class="header-content">
-            <span class="page-eyebrow">Create a narrative project</span>
-            <h1 class="title">建立新的叙事工程</h1>
+            <span class="page-eyebrow">开始写作</span>
+            <h1 class="title">创建新作品</h1>
             <p class="subtitle">
-              先确定故事核心和题材方向；角色、世界、结构与章节计划会在后续流程中逐步展开。
+              只需填写书名和故事梗概，AI 会自动帮你完成其余设置。
             </p>
           </div>
         </header>
@@ -20,23 +20,25 @@
           <n-space vertical :size="20">
             <div class="create-header">
               <div class="create-title-wrap">
-                <span class="create-icon">01</span>
-                <h3 class="create-title">从故事核心开始</h3>
+                <span class="create-icon">✍</span>
+                <h3 class="create-title">开始你的故事</h3>
               </div>
-              <n-button text type="primary" @click="createCardCollapsed = !createCardCollapsed">
-                <template #icon>
-                  <n-icon><component :is="createCardCollapsed ? IconChevronDown : IconChevronUp" /></n-icon>
-                </template>
-                {{ createCardCollapsed ? '展开创建表单' : '收起' }}
-              </n-button>
             </div>
 
-            <div v-show="!createCardCollapsed">
+            <div>
+              <n-input
+                v-model:value="newBook.title"
+                placeholder="输入书名"
+                :disabled="creating"
+                size="large"
+                class="title-input"
+              />
+
               <n-input
                 ref="createInputRef"
                 v-model:value="newBook.premise"
                 type="textarea"
-                placeholder="用一段话写清主线与爽点预期（不超过 2000 字）…&#10;&#10;例如：废柴赘婿觉醒签到系统，从被退婚到一方巨擘。"
+                placeholder="用一段话描述你的故事…&#10;&#10;例如：废柴赘婿觉醒签到系统，从被退婚到一方巨擘。"
                 :rows="5"
                 :disabled="creating"
                 size="large"
@@ -45,98 +47,30 @@
                 :maxlength="PREMISE_MAX_LEN"
               />
 
-              <div class="taxonomy-block">
-                <div class="taxonomy-block-head">
-                  <span class="taxonomy-block-title">市场分区</span>
-                  <span class="taxonomy-block-sub">大类 → 细分主题 → 自动写入「类型 / 世界观」；均可再改。</span>
-                </div>
-                <MarketTaxonomyPicker
-                  v-model:genre="newBook.genre"
-                  v-model:worldPreset="newBook.worldPreset"
-                  v-model:storyStructure="newBook.storyStructure"
-                  v-model:pacingControl="newBook.pacingControl"
-                  v-model:writingStyle="newBook.writingStyle"
-                  v-model:specialRequirements="newBook.specialRequirements"
-                  :disabled="creating"
-                />
-              </div>
-
-              <div v-show="!showAdvanced" class="length-tier-block">
-                <div class="length-tier-label">目标篇幅（选一个即可，系统按网文常用节奏推导章数）</div>
-                <n-radio-group v-model:value="lengthTier" name="lengthTier" class="length-tier-group">
-                  <n-space :size="14" :wrap="true" align="flex-start" class="length-tier-space">
-                    <n-radio
-                      v-for="opt in lengthTierOptions"
-                      :key="opt.value"
-                      :value="opt.value"
-                      :disabled="creating"
-                      class="length-tier-radio"
-                    >
-                      <div class="length-tier-option-inner">
-                        <span class="length-tier-title">{{ opt.title }}</span>
-                        <span class="length-tier-hint">{{ opt.hint }}</span>
-                      </div>
-                    </n-radio>
-                  </n-space>
-                </n-radio-group>
-              </div>
-
-              <div v-show="showAdvanced" class="advanced-settings">
-                <n-alert type="info" :show-icon="true" style="margin-bottom: 12px; font-size: 12px">
-                  自定义章数与每章字数时，不再使用「目标篇幅」档位推导；结构提示仍会在后台写入梗概供模型使用。
-                </n-alert>
-                <n-grid :cols="2" :x-gap="16" :y-gap="16" responsive="screen">
-                  <n-gi>
-                    <n-form-item label="书名">
-                      <n-input v-model:value="newBook.title" placeholder="留空则从梗概自动截取" />
-                    </n-form-item>
-                  </n-gi>
-                  <n-gi>
-                    <n-form-item label="章节数">
-                      <n-input-number v-model:value="newBook.chapters" :min="1" :max="9999" class="w-full" placeholder="默认 100 章" />
-                    </n-form-item>
-                  </n-gi>
-                  <n-gi>
-                    <n-form-item label="每章字数">
-                      <n-input-number v-model:value="newBook.words" :min="500" :max="20000" :step="500" class="w-full" />
-                    </n-form-item>
-                  </n-gi>
-                </n-grid>
-              </div>
-
-              <div v-show="!showAdvanced" style="text-align: right; margin-top: 4px">
-                <n-button text type="primary" size="small" @click="showAdvanced = !showAdvanced">
-                  <template #icon>
-                    <n-icon><IconChevronDown /></n-icon>
-                  </template>
-                  高级参数
-                </n-button>
-              </div>
-
               <n-space justify="end">
                 <n-button
                   type="primary"
                   size="large"
                   round
                   :loading="creating"
-                  :disabled="!newBook.premise.trim() || !newBook.genre.trim() || !newBook.worldPreset.trim() || !newBook.storyStructure.trim() || !newBook.pacingControl.trim() || !newBook.writingStyle.trim() || !newBook.specialRequirements.trim()"
+                  :disabled="!newBook.premise.trim()"
                   @click="handleCreate"
                 >
                   <template #icon>
                     <n-icon><IconSpark /></n-icon>
                   </template>
-                  建档并进入工作台
+                  创建作品
                 </n-button>
               </n-space>
             </div>
 
-            <div v-show="createCardCollapsed" class="create-collapsed">
-              <p class="create-collapsed-desc">已有 {{ books.length }} 部作品，点击下方按钮创建新的叙事工程</p>
+            <div class="create-collapsed">
+              <p class="create-collapsed-desc">已有 {{ books.length }} 部作品</p>
               <n-button
                 type="primary"
                 size="large"
                 round
-                @click="createCardCollapsed = false; focusCreateInput()"
+                @click="focusCreateInput()"
               >
                 <template #icon>
                   <n-icon><IconSpark /></n-icon>
@@ -361,13 +295,7 @@ const IconTrash = () =>
   h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', width: '1em', height: '1em' },
     h('path', { fill: 'currentColor', d: 'M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z' }))
 
-const IconChevronDown = () =>
-  h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', width: '1em', height: '1em' },
-    h('path', { fill: 'currentColor', d: 'M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z' }))
 
-const IconChevronUp = () =>
-  h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', width: '1em', height: '1em' },
-    h('path', { fill: 'currentColor', d: 'M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6 1.41 1.41z' }))
 
 interface BookListItem {
   slug: string
@@ -384,8 +312,6 @@ const message = useMessage()
 const statsStore = useStatsStore()
 
 const createInputRef = ref<any>(null)
-const showAdvanced = ref(false)
-const createCardCollapsed = ref(false)
 const creating = ref(false)
 const loading = ref(false)
 const books = ref<BookListItem[]>([])
@@ -404,19 +330,7 @@ const PREMISE_MAX_LEN = 2000
 const newBook = ref({
   title: '',
   premise: '',
-  genre: '',
-  worldPreset: '',
-  storyStructure: '',
-  pacingControl: '',
-  writingStyle: '',
-  specialRequirements: '',
-  chapters: 100,  // 默认 100 章
-  words: 2500,
 })
-
-/** V1 目标篇幅档（与高级自定义二选一） */
-const lengthTier = ref<NovelLengthTier>('standard')
-const lengthTierOptions = NOVEL_LENGTH_TIER_OPTIONS
 
 const filteredBooks = computed(() => {
   if (!searchQuery.value.trim()) {
@@ -457,7 +371,7 @@ const fetchBooks = async () => {
         word_count: novel.total_word_count,
       }
     })
-    createCardCollapsed.value = books.value.length > 0
+
   } catch {
     message.error('加载失败')
   } finally {
@@ -474,19 +388,7 @@ const formatWordCount = (count: number): string => {
 
 const handleCreate = async () => {
   if (!newBook.value.premise.trim()) {
-    message.warning('请输入核心梗概')
-    return
-  }
-  if (!newBook.value.genre.trim()) {
-    message.warning('请在「市场分区」中选定大类与主题')
-    return
-  }
-  if (!newBook.value.worldPreset.trim()) {
-    message.warning('请填写或确认世界观基调')
-    return
-  }
-  if (!newBook.value.storyStructure.trim() || !newBook.value.pacingControl.trim() || !newBook.value.writingStyle.trim() || !newBook.value.specialRequirements.trim()) {
-    message.warning('请补全四项写作规则')
+    message.warning('请输入故事梗概')
     return
   }
 
@@ -495,31 +397,20 @@ const handleCreate = async () => {
     const title = newBook.value.title || newBook.value.premise.substring(0, 20)
     const novelId = `novel-${Date.now()}`
 
-    const base = {
+    const result = await novelApi.createNovel({
       novel_id: novelId,
       title: title,
       author: '作者',
       premise: newBook.value.premise.trim(),
-      genre: newBook.value.genre,
-      world_preset: newBook.value.worldPreset,
-      story_structure: newBook.value.storyStructure,
-      pacing_control: newBook.value.pacingControl,
-      writing_style: newBook.value.writingStyle,
-      special_requirements: newBook.value.specialRequirements,
-    }
-    const result = await novelApi.createNovel(
-      showAdvanced.value
-        ? {
-            ...base,
-            target_chapters: newBook.value.chapters || 100,
-            target_words_per_chapter: newBook.value.words || 2500,
-          }
-        : {
-            ...base,
-            length_tier: lengthTier.value,
-            target_chapters: 0,
-          }
-    )
+      genre: '通用',
+      world_preset: '默认',
+      story_structure: '三幕式',
+      pacing_control: '适中',
+      writing_style: '流畅',
+      special_requirements: '',
+      length_tier: 'standard',
+      target_chapters: 0,
+    })
     message.success('创建成功')
 
     setupWizard.value = {

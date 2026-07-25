@@ -18,44 +18,19 @@
 
         <!-- 主导航 -->
         <nav class="main-nav" aria-label="主导航">
-          <template v-for="item in navItems" :key="item.path">
-            <n-dropdown
-              v-if="item.children && item.children.length"
-              trigger="hover"
-              placement="bottom-start"
-              :show-arrow="true"
-              :options="item.children"
-              @select="handleSubNavSelect"
-            >
-              <router-link
-                :to="item.path"
-                class="nav-item nav-item-dropdown"
-                active-class="is-active"
-                :class="{ 'is-active-group': isGroupActive(item.path) }"
-              >
-                <span class="nav-icon" aria-hidden="true">
-                  <component :is="item.icon" :size="16" />
-                </span>
-                <span class="nav-label">{{ item.label }}</span>
-                <span v-if="item.badge" class="nav-badge">{{ item.badge }}</span>
-                <span class="nav-dropdown-caret" aria-hidden="true">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                </span>
-              </router-link>
-            </n-dropdown>
-            <router-link
-              v-else
-              :to="item.path"
-              class="nav-item"
-              active-class="is-active"
-            >
-              <span class="nav-icon" aria-hidden="true">
-                <component :is="item.icon" :size="16" />
-              </span>
-              <span class="nav-label">{{ item.label }}</span>
-              <span v-if="item.badge" class="nav-badge">{{ item.badge }}</span>
-            </router-link>
-          </template>
+          <router-link
+            v-for="item in navItems"
+            :key="item.path"
+            :to="item.path"
+            class="nav-item"
+            active-class="is-active"
+          >
+            <span class="nav-icon" aria-hidden="true">
+              <component :is="item.icon" :size="16" />
+            </span>
+            <span class="nav-label">{{ item.label }}</span>
+            <span v-if="item.badge" class="nav-badge">{{ item.badge }}</span>
+          </router-link>
         </nav>
 
         <!-- 右侧：搜索 + 引擎状态 + 操作 + 用户 -->
@@ -142,39 +117,18 @@ const svgIcon = (path: string, opts: Record<string, number | string> = {}) => ()
   }, h('path', { d: path }))
 
 const IconDashboard = svgIcon('M4 4h6v6H4zM14 4h6v4h-6zM14 12h6v8h-6zM4 14h6v6H4z')
-const IconTrending = svgIcon('M4 17l5-5 4 3 7-8M15 7h5v5')
-const IconWorkshop = svgIcon('M5 3h10l4 4v14H5zM14 3v5h5M8 13h8M8 17h6')
 const IconLibrary = svgIcon('M4 5.5l5-1.5v15l-5 1.5zM9 4l6 1.5v15L9 19zM15 5.5l5-1.5v15l-5 1.5z')
-const IconFlame = svgIcon('M12 2c1 3 4 5 4 9a4 4 0 1 1-8 0c0-2 1-3 2-4-3 0-5 3-5 6a7 7 0 0 0 14 0c0-6-5-8-7-11z')
-const IconBolt = svgIcon('M13 2L3 14h8l-1 8 10-12h-8l1-8z')
-const IconBookOpen = svgIcon('M12 6v15M12 6s-2-2-6-2-4 1-4 1v14s1-1 4-1 4 1 6 2c2-1 2-2 6-2s4 1 4 1V5s-1-1-4-1-4 2-6 2z')
 
 function renderIcon(icon: () => ReturnType<typeof h>) {
   return () => h(NIcon, { size: 16 }, { default: icon })
 }
 
-// 市场洞察二级导航
-const subNavOptions = [
-  { label: '爆款发现', key: '/market', icon: renderIcon(IconFlame) },
-  { label: '题材研究', key: '/market/research', icon: renderIcon(IconBolt) },
-  { label: '爆款拆书', key: '/market/deconstruction', icon: renderIcon(IconBookOpen) },
-]
-
 const navItems = [
-  { path: '/dashboard', label: '创作总览', icon: IconDashboard, badge: '' },
-  { path: '/market', label: '市场洞察', icon: IconTrending, badge: '趋势', children: subNavOptions },
-  { path: '/studio', label: '创作工坊', icon: IconWorkshop, badge: '' },
+  { path: '/dashboard', label: '开始写作', icon: IconDashboard, badge: '' },
   { path: '/library', label: '作品库', icon: IconLibrary, badge: '' },
 ]
 
-function isGroupActive(path: string): boolean {
-  if (path === '/market') return route.path.startsWith('/market')
-  return false
-}
 
-function handleSubNavSelect(key: string | number) {
-  router.push(String(key))
-}
 
 // 引擎状态（基于主题模式 + 假数据，后续可接入真实状态）
 const engineStatusClass = computed(() => {
@@ -233,13 +187,10 @@ const userMenuOptions = computed<DropdownOption[]>(() => [
       ]),
   },
   { type: 'divider', key: 'd1' },
-  { label: '我的作品库', key: 'library', icon: renderIcon(IconLibrary) },
-  { label: '新建作品', key: 'studio', icon: renderIcon(IconWorkshop) },
+  { label: '作品库', key: 'library', icon: renderIcon(IconLibrary) },
   { type: 'divider', key: 'd2' },
   { label: '外观主题', key: 'theme', icon: renderIcon(IconDashboard) },
   { label: '偏好设置', key: 'settings', icon: renderIcon(IconDashboard) },
-  { type: 'divider', key: 'd3' },
-  { label: '关于 Narra · 叙界', key: 'about', icon: renderIcon(IconDashboard) },
 ])
 
 function handleUserMenuSelect(key: string) {
@@ -247,17 +198,11 @@ function handleUserMenuSelect(key: string) {
     case 'library':
       goLibrary()
       break
-    case 'studio':
-      goStudio()
-      break
     case 'theme':
       cycleTheme()
       break
     case 'settings':
       openSettings()
-      break
-    case 'about':
-      message.info(`${BRAND.displayName} · ${BRAND.tagline}`)
       break
   }
 }
